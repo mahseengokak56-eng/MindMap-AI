@@ -33,5 +33,7 @@ export const triggerSOS = () => api.post('/sos');
 export const sendMessage = (data) => api.post('/chat', data);
 export const getProfile = () => api.get('/profile');
 export const updateEmergencyContact = (data) => api.put('/profile/emergency', data);
+export const getJournals = () => api.get('/journal');
+export const createJournal = (data) => api.post('/journal', data);
 
 export default api;

@@ -11,18 +11,14 @@ const UserSchema = new mongoose.Schema({
     unique: true,
     lowercase: true,
   },
-  password: {
-    type: String,
-    required: true,
-  },
+  password: { type: String, required: true },
   emergencyContact: {
-    name: String,
-    phone: String
+    name: { type: String, default: '' },
+    phone: { type: String, default: '' }
   },
-  createdAt: {
-    type: Date,
-    default: Date.now
-  }
+  currentStreak: { type: Number, default: 0 },
+  lastLogDate: { type: Date, default: null },
+  createdAt: { type: Date, default: Date.now },
 });
 
 module.exports = mongoose.model('User', UserSchema);

@@ -1,5 +1,5 @@
 import { Link, useLocation } from 'react-router-dom';
-import { Activity, Brain, PenLine, AlertCircle, LogOut, Settings, PlayCircle, PauseCircle, Headphones, Music, CloudRain, Wind } from 'lucide-react';
+import { Activity, Brain, Book, PenLine, AlertCircle, LogOut, Settings, PlayCircle, PauseCircle, Headphones, Music, CloudRain, Wind } from 'lucide-react';
 import { useState, useRef, useEffect } from 'react';
 import { triggerSOS, getProfile } from '../services/api';
 import { useAuth } from '../context/AuthContext';
@@ -163,6 +163,14 @@ const Navbar = () => {
                 >
                   <PenLine size={20} />
                   <span className="hidden sm:inline font-medium">Tracker</span>
+                </Link>
+
+                <Link 
+                   to="/journal"
+                   className={`flex items-center gap-2 px-3 py-2 rounded-lg transition-colors ${location.pathname === '/journal' ? 'text-primary bg-primary/10' : 'text-gray-400 hover:text-gray-200 hover:bg-white/5'}`}
+                >
+                  <Book size={20} />
+                  <span className="hidden sm:inline font-medium">Journal</span>
                 </Link>
                 
                 <div className="w-px h-6 bg-white/10 mx-2 hidden sm:block"></div>

@@ -31,6 +31,7 @@ app.use('/api/suggestions', require('./routes/predictions').suggestionsRouter);
 app.use('/api/sos', require('./routes/sos'));
 app.use('/api/chat', require('./routes/chat'));
 app.use('/api/profile', require('./routes/profile'));
+app.use('/api/journal', require('./routes/journal'));
 
 app.get("/api/health", (req, res) => {
   res.status(200).json({
