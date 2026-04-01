@@ -13,54 +13,53 @@ predictRouter.get('/', authMiddleware, async (req, res) => {
     const latestActivity = await ActivityLog.findOne({ userId: req.userId }).sort({ createdAt: -1 });
     const recentMoods = await MoodLog.find({ userId: req.userId }).sort({ createdAt: -1 }).limit(3);
 
-    let riskScore = 15; // Baseline 15 for visibility
+    let riskScore = 15; 
     const triggerDetails = [];
 
-    console.log(`[Prediction Engine] Analyzing for User: ${req.userId}`);
-
     if (latestActivity) {
-      // Screen Time
+      // Screen Time Calibration
       if (latestActivity.screenTimeHours > 12) {
-        riskScore += 30;
-        triggerDetails.push({ trigger: 'Extreme Screen Time', impact: 30 });
+        riskScore += 35;
+        triggerDetails.push({ trigger: 'Extreme Screen Time', impact: 35 });
       } else if (latestActivity.screenTimeHours > 8) {
         riskScore += 20;
         triggerDetails.push({ trigger: 'High Screen Time', impact: 20 });
       }
 
-      // Sleep
+      // Sleep Calibration (Impactful)
       if (latestActivity.sleepHours < 4) {
-        riskScore += 40;
-        triggerDetails.push({ trigger: 'Critical Sleep Deprivation', impact: 40 });
+        riskScore += 45;
+        triggerDetails.push({ trigger: 'Critical Sleep Deprivation', impact: 45 });
       } else if (latestActivity.sleepHours < 6) {
         riskScore += 30;
         triggerDetails.push({ trigger: 'Low Sleep', impact: 30 });
       }
 
-      // Study
+      // Productivity / Study
       if (latestActivity.studyTimeHours > 10) {
         riskScore += 15;
         triggerDetails.push({ trigger: 'Heavy Workload', impact: 15 });
       }
 
       // Positive offset: Good sleep
-      if (latestActivity.sleepHours >= 8) riskScore -= 10;
+      if (latestActivity.sleepHours >= 8) riskScore -= 15;
     }
 
-    // Mood Patterns
-    let negativeCount = 0;
-    recentMoods.forEach(m => { if (m.moodScore <= 2) negativeCount++; });
-
+    // Mood Dynamic Scaling
+    const negativeCount = recentMoods.filter(m => m.moodScore <= 2).length;
     if (negativeCount >= 3) {
-      riskScore += 40;
-      triggerDetails.push({ trigger: 'Persistent Negative Mood', impact: 40 });
+      riskScore += 45;
+      triggerDetails.push({ trigger: 'Severe Emotional Strain', impact: 45 });
     } else if (negativeCount >= 1) {
-      riskScore += 15;
-      triggerDetails.push({ trigger: 'Declining Mood', impact: 15 });
+      const moodImpact = (3 - recentMoods[0].moodScore) * 10 + 5; 
+      if (moodImpact > 0) {
+        riskScore += moodImpact;
+        triggerDetails.push({ trigger: 'Declining Mood', impact: moodImpact });
+      }
     }
 
-    // Cap between 5 and 100 (keep it visible)
-    riskScore = Math.max(5, Math.min(100, riskScore));
+    // Cap between 5 and 100
+    riskScore = Math.max(5, Math.min(100, Math.ceil(riskScore)));
 
     let status, suggestions;
     if (riskScore >= 70) {

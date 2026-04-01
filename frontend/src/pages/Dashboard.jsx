@@ -1,8 +1,9 @@
 import { useEffect, useState } from 'react';
-import { getPrediction, getMoodHistory, getActivityHistory } from '../services/api';
+import { getPrediction, getMoodHistory, getActivityHistory, getProfile } from '../services/api';
 import {
   LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer,
-  BarChart, Bar, Legend, CartesianGrid, RadialBarChart, RadialBar
+  BarChart, Bar, Legend, CartesianGrid, RadialBarChart, RadialBar, PolarAngleAxis,
+  Radar, RadarChart, PolarGrid, PolarRadiusAxis
 } from 'recharts';
 import { BatteryWarning, TrendingUp, Clock, Activity, AlertTriangle, Zap, Moon, Monitor, Brain, RefreshCw, Flame } from 'lucide-react';
 import { motion } from 'framer-motion';
@@ -51,39 +52,47 @@ const Dashboard = () => {
     if (isRefresh) setRefreshing(true);
     else setLoading(true);
     try {
-      const [predRes, moodsRes, actRes, profRes] = await Promise.all([
+      const results = await Promise.allSettled([
         getPrediction(),
         getMoodHistory(),
         getActivityHistory(),
         getProfile()
       ]);
 
-      setPrediction(predRes.data);
-      setProfile(profRes.data);
+      // Helper to extract data from settled promise
+      const ok = (idx) => results[idx].status === 'fulfilled' ? results[idx].value.data : null;
 
-      const moodData = moodsRes.data;
-      if (moodData.length) setLastMood(moodData[moodData.length - 1]);
+      const predData = ok(0);
+      const moodData = ok(1) || [];
+      const actData  = ok(2) || [];
+      const profData = ok(3);
 
-      const formattedMoods = moodData.map(m => ({
-        name: new Date(m.createdAt).toLocaleDateString(undefined, { weekday: 'short' }),
-        score: m.moodScore,
-        emoji: m.emoji
-      }));
-      setMoods(formattedMoods);
+      if (predData) setPrediction(predData);
+      if (profData) setProfile(profData);
 
-      const actData = actRes.data;
-      if (actData.length) setLastActivity(actData[0]);
+      if (moodData.length) {
+        setLastMood(moodData[moodData.length - 1]);
+        const formattedMoods = moodData.map(m => ({
+          name: new Date(m.createdAt).toLocaleDateString(undefined, { weekday: 'short' }),
+          score: m.moodScore,
+          emoji: m.emoji
+        }));
+        setMoods(formattedMoods);
+      }
 
-      const formattedActivities = actData.map(a => ({
-        name: new Date(a.createdAt).toLocaleDateString(undefined, { weekday: 'short' }),
-        'Screen': a.screenTimeHours,
-        'Sleep': a.sleepHours,
-        'Study': a.studyTimeHours
-      })).reverse();
-      setActivities(formattedActivities);
+      if (actData.length) {
+        setLastActivity(actData[0]);
+        const formattedActivities = actData.map(a => ({
+          name: new Date(a.createdAt).toLocaleDateString(undefined, { weekday: 'short' }),
+          'Screen': a.screenTimeHours,
+          'Sleep': a.sleepHours,
+          'Study': a.studyTimeHours
+        })).reverse();
+        setActivities(formattedActivities);
+      }
 
     } catch (err) {
-      console.error('Dashboard error:', err);
+      console.error('Core Dashboard Error:', err);
     } finally {
       setLoading(false);
       setRefreshing(false);
@@ -103,8 +112,19 @@ const Dashboard = () => {
   );
 
   const cfg = STATUS_CONFIG[prediction?.status] || STATUS_CONFIG['Low Risk'];
-  const riskScore = prediction?.riskScore || 0;
-  const radialData = [{ name: 'Risk', value: riskScore, fill: riskScore >= 70 ? '#ef4444' : riskScore >= 40 ? '#f59e0b' : '#10b981' }];
+  const riskScore = Math.ceil(prediction?.riskScore || 0);
+  const radialData = [
+    { name: 'Risk', value: riskScore, fill: riskScore >= 70 ? '#ef4444' : riskScore >= 40 ? '#f59e0b' : '#10b981' }
+  ];
+
+  // Normalized Trigger Map Data (Larger area = more stress in that zone)
+  const radarData = [
+    { subject: 'Low Sleep', A: Math.max(0, ((8 - (lastActivity?.sleepHours || 8)) / 8) * 100), fullMark: 100 },
+    { subject: 'Digital Strain', A: Math.min(100, ((lastActivity?.screenTimeHours || 0) / 12) * 100), fullMark: 100 },
+    { subject: 'Mood Heavy', A: Math.max(0, ((5 - (lastMood?.moodScore || 5)) / 5) * 100), fullMark: 100 },
+    { subject: 'Workload', A: Math.min(100, ((lastActivity?.studyTimeHours || 0) / 10) * 100), fullMark: 100 },
+    { subject: 'Burnout Risk', A: riskScore, fullMark: 100 },
+  ];
 
   const hasData = moods.length > 0 || activities.length > 0;
 
@@ -145,29 +165,37 @@ const Dashboard = () => {
       >
         <div className="absolute top-0 right-0 w-96 h-96 bg-current opacity-5 rounded-full blur-[100px] -mr-32 -mt-32 pointer-events-none" />
         
-        <div className="relative z-10 grid lg:grid-cols-12 gap-12 items-center">
+        <div className="relative z-10 grid lg:grid-cols-12 gap-8 items-center">
           
           {/* Radial Chart Column */}
           <div className="lg:col-span-4 flex flex-col items-center">
-            <div className="relative w-56 h-56">
+            <div className="relative w-64 h-64">
               <ResponsiveContainer width="100%" height="100%">
                 <RadialBarChart
-                  innerRadius="75%" outerRadius="100%"
-                  barSize={12}
+                  width={256} height={256}
+                  innerRadius="80%" outerRadius="100%"
+                  barSize={24}
                   data={radialData}
                   startAngle={90} endAngle={-270}
                 >
-                  <RadialBar dataKey="value" cornerRadius={6} background={{ fill: 'rgba(255,255,255,0.05)' }} />
+                  <PolarAngleAxis type="number" domain={[0, 100]} angleAxisId={0} tick={false} />
+                  <RadialBar 
+                    dataKey="value" 
+                    cornerRadius={12} 
+                    background={{ fill: 'rgba(255,255,255,0.08)' }} 
+                  />
                 </RadialBarChart>
               </ResponsiveContainer>
               <div className="absolute inset-0 flex flex-col items-center justify-center -mt-2">
-                <div className="text-6xl font-black text-white tracking-tighter">{riskScore}</div>
-                <div className="text-[10px] font-bold text-gray-400 uppercase tracking-[0.2em]">Risk Score</div>
+                <motion.div initial={{ scale: 0.8 }} animate={{ scale: 1 }} className="text-7xl font-black text-white tracking-tighter drop-shadow-2xl">
+                  {riskScore}
+                </motion.div>
+                <div className="text-[10px] font-bold text-gray-400 uppercase tracking-[0.3em]">Score / 100</div>
               </div>
             </div>
             
-            <div className={`mt-6 inline-flex items-center gap-2 px-6 py-2 rounded-full text-xs font-black border tracking-widest uppercase shadow-lg ${cfg.bg} ${cfg.border} ${cfg.color}`}>
-              <div className={`w-2 h-2 rounded-full ${riskScore >= 70 ? 'bg-red-500 animate-pulse' : riskScore >= 40 ? 'bg-amber-500' : 'bg-emerald-500'}`} />
+            <div className={`mt-6 inline-flex items-center gap-3 px-8 py-3 rounded-full text-xs font-black border tracking-[0.2em] uppercase shadow-2xl transition-all ${cfg.bg} ${cfg.border} ${cfg.color}`}>
+              <div className={`w-3 h-3 rounded-full ${riskScore >= 70 ? 'bg-red-500 animate-pulse' : riskScore >= 40 ? 'bg-amber-500' : 'bg-emerald-500'}`} />
               {prediction?.status || 'Analyzing...'}
             </div>
           </div>
@@ -177,46 +205,81 @@ const Dashboard = () => {
             <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4">
               <div>
                 <div className="flex items-center gap-2 text-xs font-bold text-primary uppercase tracking-widest mb-1 opacity-70">
-                  <Brain size={14} /> AI Daily Intelligence
+                  <Brain size={14} /> AI Analysis Engine
                 </div>
-                <h2 className="text-3xl font-black text-white leading-tight">Your Burnout Prediction Board</h2>
-                <p className="text-gray-400 text-sm mt-1 max-w-lg">
-                  Real-time wellness intelligence synthesized from your mood, environmental triggers, and activity patterns.
+                <h2 className="text-4xl font-black text-white leading-tight">Burnout Intelligence Board</h2>
+                <p className="text-gray-400 text-sm mt-1 max-w-xl">
+                  Advanced synthesis of sleep quality, digital strain, and emotional patterns.
                 </p>
               </div>
-              <div className="hidden sm:block text-right">
-                 <div className="text-[10px] font-bold text-gray-500 uppercase">Analysis Confidence</div>
-                 <div className="text-sm font-bold text-white">94.2% Accurate</div>
+              <div className="flex items-center gap-4">
+                 <div className="text-right">
+                    <div className="text-[10px] font-bold text-gray-500 uppercase">Analysis Engine</div>
+                    <div className="text-sm font-bold text-white">MindMap v2.0</div>
+                 </div>
               </div>
             </div>
 
-            <div className="grid sm:grid-cols-2 gap-4">
-              <div className="bg-white/5 rounded-2xl p-5 border border-white/5 hover:border-white/10 transition-colors">
+            <div className="grid sm:grid-cols-3 gap-6">
+              {/* Input Analysis Section */}
+              <div className="bg-white/5 rounded-2xl p-6 border border-white/5 hover:border-white/10 transition-colors">
                 <h3 className="font-bold mb-4 flex items-center gap-2 text-[10px] uppercase tracking-widest text-gray-400">
-                  <Zap size={14} className="text-amber-400" /> Key Prediction Logic
+                  <Activity size={14} className="text-fuchsia-500" /> Metrics Breakdown
                 </h3>
-                {prediction?.triggerDetails && prediction.triggerDetails.length > 0 ? (
-                   <ul className="space-y-3">
-                     {prediction.triggerDetails.map((t, idx) => (
-                       <li key={idx} className="flex justify-between items-center text-sm">
-                         <span className="text-gray-300">{t.trigger}</span>
-                         <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-red-400/10 text-red-400">+{t.impact}</span>
-                       </li>
-                     ))}
-                   </ul>
-                ) : (
-                  <p className="text-gray-500 text-xs italic">No critical triggers detected. Keep up your current rhythm.</p>
-                )}
+                <div className="space-y-4">
+                   <div className="flex justify-between items-end border-b border-white/5 pb-2">
+                      <div className="text-xs text-gray-400">Sleep Level</div>
+                      <div className="text-sm font-bold text-white text-right">
+                        {lastActivity?.sleepHours || 0}h 
+                      </div>
+                   </div>
+                   <div className="flex justify-between items-end border-b border-white/5 pb-2">
+                      <div className="text-xs text-gray-400">Digital Strain</div>
+                      <div className="text-sm font-bold text-white text-right">
+                        {lastActivity?.screenTimeHours || 0}h
+                      </div>
+                   </div>
+                   <div className="flex justify-between items-end border-b border-white/5 pb-2">
+                      <div className="text-xs text-gray-400">Productivity</div>
+                      <div className="text-sm font-bold text-white text-right">
+                        {lastActivity?.studyTimeHours || 0}h
+                      </div>
+                   </div>
+                </div>
               </div>
 
-              <div className="bg-primary/5 rounded-2xl p-5 border border-primary/10 hover:border-primary/20 transition-colors">
-                <h3 className="font-bold mb-4 flex items-center gap-2 text-[10px] uppercase tracking-widest text-primary">
-                  <TrendingUp size={14} /> Next Steps for You
+              {/* Trigger Map (Radar) Section */}
+              <div className="bg-white/5 rounded-2xl p-6 border border-white/5 hover:border-white/10 transition-colors flex flex-col items-center">
+                <h3 className="font-bold mb-2 flex items-center gap-2 text-[10px] uppercase tracking-widest text-violet-400 w-full">
+                  <Zap size={14} /> AI Stress Map
                 </h3>
-                <ul className="space-y-3">
-                  {(prediction?.suggestions || ['Continue tracking to get advice']).slice(0, 3).map((sug, i) => (
-                    <li key={i} className="flex gap-2 text-xs text-gray-300">
-                      <div className="w-1 h-1 rounded-full bg-primary mt-1.5 shrink-0" />
+                <div className="w-full h-48 flex-1">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <RadarChart cx="50%" cy="50%" outerRadius="65%" data={radarData}>
+                      <PolarGrid stroke="rgba(255,255,255,0.05)" />
+                      <PolarAngleAxis dataKey="subject" tick={{ fill: '#94a3b8', fontSize: 9, fontWeight: 'bold' }} />
+                      <Radar
+                        name="Strain"
+                        dataKey="A"
+                        stroke="#a855f7"
+                        strokeWidth={3}
+                        fill="#a855f7"
+                        fillOpacity={0.2}
+                      />
+                    </RadarChart>
+                  </ResponsiveContainer>
+                </div>
+              </div>
+
+              {/* Suggestions / Next Steps */}
+              <div className="bg-primary/5 rounded-2xl p-6 border border-primary/10 hover:border-primary/20 transition-colors">
+                <h3 className="font-bold mb-4 flex items-center gap-2 text-[10px] uppercase tracking-widest text-primary">
+                  <Flame size={14} /> Next Steps
+                </h3>
+                <ul className="space-y-4">
+                  {(prediction?.suggestions || ['Logging habits will trigger specific AI suggestions...']).slice(0, 3).map((sug, i) => (
+                    <li key={i} className="flex gap-3 text-[11px] text-gray-300 leading-relaxed">
+                      <div className="w-1.5 h-1.5 rounded-full bg-primary mt-1.5 shrink-0 shadow-[0_0_8px_rgba(var(--primary-rgb),0.5)]" />
                       {sug}
                     </li>
                   ))}
@@ -227,151 +290,131 @@ const Dashboard = () => {
         </div>
       </motion.div>
 
-      {/* Conditional Rendering for empty state on Charts */}
-      {!hasData ? (
-        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}
-          className="glass-card text-center py-20 border-dashed border-white/10">
-          <Activity size={48} className="mx-auto text-primary/30 mb-4" />
-          <h3 className="text-xl font-bold mb-2 text-gray-300">Detailed Insights Pending</h3>
-          <p className="text-gray-500 mb-6 max-w-xs mx-auto">
-            The board is active, but we need at least one check-in to generate your charts and trend maps.
-          </p>
-          <Link to="/log" className="btn-primary inline-flex items-center gap-2">
-            <Zap size={18} /> Daily Check-In
-          </Link>
-        </motion.div>
-      ) : (
-        <>
+      {/* QUICK STATS & TRENDS SECTION - ALWAYS VISIBLE */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+        {[
+          { icon: <TrendingUp size={24} />, label: "Health Score", value: `${100 - riskScore}%`, color: "text-emerald-400" },
+          { icon: <Monitor size={24} />, label: "Latest Stressor", value: lastActivity?.screenTimeHours > 8 ? "Screen Time" : "None", color: "text-violet-400" },
+          { icon: <Moon size={24} />, label: "Last Sleep", value: `${lastActivity?.sleepHours || 0}h`, color: "text-blue-400" },
+          { icon: <Flame size={24} />, label: "Consistency", value: `${profile?.currentStreak || 0}d`, color: "text-orange-500" },
+        ].map((stat, i) => (
+          <motion.div key={i} initial={{ y: 20, opacity: 0 }} animate={{ y: 0, opacity: 1 }} transition={{ delay: 0.1 * i }}>
+            <div className="glass-card text-center p-6 space-y-2 hover:bg-white/5 transition-all cursor-default">
+              <div className={`flex justify-center mb-2 ${stat.color}`}>{stat.icon}</div>
+              <div className="text-2xl font-black text-white">{stat.value}</div>
+              <div className="text-[10px] font-bold text-gray-500 uppercase tracking-widest">{stat.label}</div>
+            </div>
+          </motion.div>
+        ))}
+      </div>
 
-          {/* Quick Stats */}
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-            <motion.div initial={{ y: 20, opacity: 0 }} animate={{ y: 0, opacity: 1 }} transition={{ delay: 0.1 }}>
-              <StatCard icon={<Activity size={28} />} label="Latest Mood" value={lastMood?.emoji || '—'} sub={`Score: ${lastMood?.moodScore || '—'}/5`} color="text-fuchsia-400" />
-            </motion.div>
-            <motion.div initial={{ y: 20, opacity: 0 }} animate={{ y: 0, opacity: 1 }} transition={{ delay: 0.15 }}>
-              <StatCard icon={<Monitor size={28} />} label="Screen Time" value={lastActivity ? `${lastActivity.screenTimeHours}h` : '—'} sub="Latest entry" color="text-violet-400" />
-            </motion.div>
-            <motion.div initial={{ y: 20, opacity: 0 }} animate={{ y: 0, opacity: 1 }} transition={{ delay: 0.2 }}>
-              <StatCard icon={<Moon size={28} />} label="Sleep" value={lastActivity ? `${lastActivity.sleepHours}h` : '—'} sub="Latest entry" color="text-blue-400" />
-            </motion.div>
-            <motion.div initial={{ y: 20, opacity: 0 }} animate={{ y: 0, opacity: 1 }} transition={{ delay: 0.25 }}>
-              <StatCard icon={<Brain size={28} />} label="Total Logs" value={moods.length} sub="Mood entries tracked" color="text-emerald-400" />
-            </motion.div>
-            <motion.div initial={{ y: 20, opacity: 0 }} animate={{ y: 0, opacity: 1 }} transition={{ delay: 0.3 }}>
-              <StatCard icon={<Flame size={28} />} label="Daily Streak" value={`${profile?.currentStreak || 0} Days`} sub="Keep it going! 🔥" color="text-orange-500" />
-            </motion.div>
-          </div>
-
-          {/* Charts Row */}
-          <div className="grid lg:grid-cols-2 gap-8">
-            {/* Mood Chart */}
-            <motion.div initial={{ y: 20, opacity: 0 }} animate={{ y: 0, opacity: 1 }} transition={{ delay: 0.3 }}
-              className="glass-card flex flex-col" style={{ height: '380px' }}>
-              <div className="flex items-center justify-between mb-6">
-                <div className="flex items-center gap-3">
-                  <div className="w-8 h-8 rounded-lg bg-fuchsia-500/10 flex items-center justify-center">
-                    <Activity className="text-fuchsia-400" size={18} />
-                  </div>
-                  <div>
-                    <h2 className="text-lg font-bold">Mood Trend</h2>
-                    <p className="text-xs text-gray-500">Last {moods.length} entries</p>
-                  </div>
-                </div>
-              </div>
-              <div className="flex-1 min-h-0">
-                <ResponsiveContainer width="100%" height="100%">
-                  <LineChart data={moods} margin={{ top: 5, right: 5, left: -20, bottom: 0 }}>
-                    <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" />
-                    <XAxis dataKey="name" stroke="#475569" tick={{ fill: '#64748b', fontSize: 12 }} />
-                    <YAxis domain={[0, 5]} ticks={[1, 2, 3, 4, 5]} stroke="#475569" tick={{ fill: '#64748b', fontSize: 12 }} />
-                    <Tooltip content={<CustomTooltip />} />
-                    <Line
-                      type="monotone" dataKey="score" name="Mood"
-                      stroke="#d946ef" strokeWidth={3}
-                      dot={{ r: 5, fill: '#0f172a', stroke: '#d946ef', strokeWidth: 2 }}
-                      activeDot={{ r: 8, fill: '#d946ef' }}
-                    />
-                  </LineChart>
-                </ResponsiveContainer>
-              </div>
-            </motion.div>
-
-            {/* Activity Chart */}
-            <motion.div initial={{ y: 20, opacity: 0 }} animate={{ y: 0, opacity: 1 }} transition={{ delay: 0.35 }}
-              className="glass-card flex flex-col" style={{ height: '380px' }}>
-              <div className="flex items-center gap-3 mb-6">
-                <div className="w-8 h-8 rounded-lg bg-blue-500/10 flex items-center justify-center">
-                  <Clock className="text-blue-400" size={18} />
+      <div className="grid lg:grid-cols-2 gap-8">
+        {/* Mood Analysis Trend */}
+        <motion.div initial={{ y: 20, opacity: 0 }} animate={{ y: 0, opacity: 1 }} transition={{ delay: 0.4 }} className="glass-card min-h-[400px] flex flex-col">
+          <div className="flex items-center justify-between mb-8">
+             <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-xl bg-fuchsia-500/10 flex items-center justify-center text-fuchsia-400">
+                   <Activity size={20} />
                 </div>
                 <div>
-                  <h2 className="text-lg font-bold">Trigger Insights</h2>
-                  <p className="text-xs text-gray-500">Screen · Sleep · Study (hours)</p>
+                   <h2 className="text-xl font-bold">Emotional Trajectory</h2>
+                   <p className="text-xs text-gray-500">Historical mood mapping</p>
                 </div>
-              </div>
-              <div className="flex-1 min-h-0">
-                <ResponsiveContainer width="100%" height="100%">
-                  <BarChart data={activities} margin={{ top: 5, right: 5, left: -20, bottom: 0 }}>
-                    <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" />
-                    <XAxis dataKey="name" stroke="#475569" tick={{ fill: '#64748b', fontSize: 12 }} />
-                    <YAxis stroke="#475569" tick={{ fill: '#64748b', fontSize: 12 }} />
-                    <Tooltip content={<CustomTooltip />} cursor={{ fill: 'rgba(255,255,255,0.03)' }} />
-                    <Legend wrapperStyle={{ color: '#64748b', fontSize: '12px', paddingTop: '10px' }} />
-                    <Bar dataKey="Screen" fill="#8b5cf6" radius={[4, 4, 0, 0]} />
-                    <Bar dataKey="Sleep"  fill="#3b82f6" radius={[4, 4, 0, 0]} />
-                    <Bar dataKey="Study"  fill="#10b981" radius={[4, 4, 0, 0]} />
-                  </BarChart>
-                </ResponsiveContainer>
-              </div>
-            </motion.div>
+             </div>
           </div>
-
-          {/* Trigger Detection Engine — DYNAMIC MAP */}
-          <motion.div initial={{ y: 20, opacity: 0 }} animate={{ y: 0, opacity: 1 }} transition={{ delay: 0.4 }}
-            className="glass-card">
-            <div className="flex items-center justify-between mb-6">
-              <h2 className="text-xl font-bold flex items-center gap-2">
-                <Zap className="text-amber-400" size={22} /> Trigger Detection Engine
-              </h2>
-              <div className="text-[10px] font-bold text-gray-500 uppercase tracking-widest bg-white/5 px-2 py-1 rounded">
-                AI Analysis Active
-              </div>
-            </div>
-
-            {prediction?.triggerDetails && prediction.triggerDetails.length > 0 ? (
-              <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
-                {prediction.triggerDetails.map((t, idx) => (
-                  <motion.div 
-                    key={idx} 
-                    initial={{ scale: 0.95, opacity: 0 }} 
-                    animate={{ scale: 1, opacity: 1 }} 
-                    transition={{ delay: 0.1 * idx }}
-                    className="p-5 rounded-2xl border bg-red-500/5 border-red-500/10 flex flex-col justify-between hover:border-red-500/30 transition-all"
-                  >
-                    <div className="flex justify-between items-start mb-2">
-                      <span className="text-sm font-bold text-white leading-tight">{t.trigger}</span>
-                      <span className="text-[10px] font-black px-2 py-0.5 rounded-full bg-red-500/20 text-red-400 border border-red-500/20">
-                        ⚠ ACTIVE
-                      </span>
-                    </div>
-                    <div className="mt-4">
-                      <div className="text-2xl font-black text-red-400">+{t.impact}</div>
-                      <div className="text-[10px] text-gray-500 font-bold uppercase tracking-tighter">Impact on Risk Score</div>
-                    </div>
-                  </motion.div>
-                ))}
-              </div>
-            ) : (
-              <div className="py-12 text-center bg-emerald-500/5 border border-dashed border-emerald-500/20 rounded-2xl">
-                <div className="w-12 h-12 rounded-full bg-emerald-500/20 text-emerald-500 flex items-center justify-center mx-auto mb-3">
-                   <Zap size={20} />
-                </div>
-                <h4 className="text-emerald-400 font-bold text-sm">No Critical Triggers Detected</h4>
-                <p className="text-gray-500 text-xs mt-1">Your current metrics are within healthy ranges. Keep it up!</p>
+          <div className="flex-1 w-full min-h-[250px] relative">
+            {!hasData && (
+              <div className="absolute inset-0 flex items-center justify-center bg-black/20 backdrop-blur-[2px] z-10 rounded-xl">
+                 <p className="text-xs font-bold text-gray-500 uppercase tracking-widest">Logging Data Required</p>
               </div>
             )}
-          </motion.div>
-        </>
-      )}
+            <ResponsiveContainer width="100%" height="100%">
+              <LineChart data={moods.length > 0 ? moods : [{name: 'M', score: 3}, {name: 'T', score: 3}]} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+                <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" vertical={false} />
+                <XAxis dataKey="name" stroke="#475569" tick={{ fill: '#64748b', fontSize: 11 }} axisLine={false} />
+                <YAxis domain={[0, 5]} ticks={[1, 2, 3, 4, 5]} stroke="#475569" tick={{ fill: '#64748b', fontSize: 11 }} axisLine={false} />
+                <Tooltip content={<CustomTooltip />} />
+                <Line type="monotone" dataKey="score" stroke="#d946ef" strokeWidth={4} dot={{ r: 6, fill: '#0f172a', stroke: '#d946ef', strokeWidth: 2 }} activeDot={{ r: 10, fill: '#d946ef' }} />
+              </LineChart>
+            </ResponsiveContainer>
+          </div>
+        </motion.div>
+
+        {/* Activity Correlation Chart */}
+        <motion.div initial={{ y: 20, opacity: 0 }} animate={{ y: 0, opacity: 1 }} transition={{ delay: 0.5 }} className="glass-card min-h-[400px] flex flex-col">
+          <div className="flex items-center gap-3 mb-8">
+             <div className="w-10 h-10 rounded-xl bg-blue-500/10 flex items-center justify-center text-blue-400">
+                <Monitor size={20} />
+             </div>
+             <div>
+                <h2 className="text-xl font-bold">Input Correlation</h2>
+                <p className="text-xs text-gray-500">Sleep vs Screen vs Study</p>
+             </div>
+          </div>
+          <div className="flex-1 w-full min-h-[250px] relative">
+            {!hasData && (
+              <div className="absolute inset-0 flex items-center justify-center bg-black/20 backdrop-blur-[2px] z-10 rounded-xl">
+                 <p className="text-xs font-bold text-gray-500 uppercase tracking-widest">Logging Data Required</p>
+              </div>
+            )}
+            <ResponsiveContainer width="100%" height="100%">
+              <BarChart data={activities.length > 0 ? activities : [{name: 'M', Screen: 4, Sleep: 8, Study: 2}]} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+                <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" vertical={false} />
+                <XAxis dataKey="name" stroke="#475569" tick={{ fill: '#64748b', fontSize: 11 }} axisLine={false} />
+                <YAxis stroke="#475569" tick={{ fill: '#64748b', fontSize: 11 }} axisLine={false} />
+                <Tooltip content={<CustomTooltip />} cursor={{ fill: 'rgba(255,255,255,0.03)' }} />
+                <Legend wrapperStyle={{ fontSize: '11px', paddingTop: '15px' }} />
+                <Bar dataKey="Screen" fill="#8b5cf6" radius={[4, 4, 0, 0]} />
+                <Bar dataKey="Sleep"  fill="#3b82f6" radius={[4, 4, 0, 0]} />
+                <Bar dataKey="Study"  fill="#10b981" radius={[4, 4, 0, 0]} />
+              </BarChart>
+            </ResponsiveContainer>
+          </div>
+        </motion.div>
+      </div>
+
+      <div className="pb-10">
+        {/* Dynamic Trigger Engine Map */}
+        <motion.div initial={{ y: 20, opacity: 0 }} animate={{ y: 0, opacity: 1 }} transition={{ delay: 0.6 }} className="glass-card">
+          <div className="flex items-center justify-between mb-8">
+            <h2 className="text-2xl font-black flex items-center gap-3">
+              <Zap className="text-amber-400" size={28} /> Trigger Intelligence Engine
+            </h2>
+            <div className="flex items-center gap-2 px-3 py-1 rounded bg-white/5 border border-white/10 text-[10px] font-black text-gray-500 tracking-widest uppercase">
+               Neural Analysis Active
+            </div>
+          </div>
+
+          {!prediction?.triggerDetails || prediction.triggerDetails.length === 0 ? (
+             <div className="py-20 text-center border-2 border-dashed border-white/5 rounded-3xl">
+                <Brain size={40} className="mx-auto text-gray-700 mb-4" />
+                <h4 className="text-gray-500 font-bold uppercase tracking-widest text-xs">No Critical Stressors Active</h4>
+                <p className="text-gray-600 text-[10px] mt-2">Log your latest metrics to update the Intelligence Engine.</p>
+             </div>
+          ) : (
+            <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
+              {prediction.triggerDetails.map((t, idx) => (
+                <motion.div 
+                  key={idx} 
+                  whileHover={{ y: -5 }}
+                  className="p-6 rounded-3xl border bg-red-500/5 border-red-500/10 flex flex-col justify-between hover:bg-red-500/10 hover:border-red-500/30 transition-all shadow-xl"
+                >
+                  <div className="flex justify-between items-start">
+                    <span className="text-lg font-black text-white leading-tight uppercase tracking-tighter">{t.trigger}</span>
+                    <div className="bg-red-500/20 text-red-400 p-1.5 rounded-lg border border-red-500/20 shadow-lg">
+                      <AlertTriangle size={18} />
+                    </div>
+                  </div>
+                  <div className="mt-8 pt-4 border-t border-white/5">
+                    <div className="text-4xl font-black text-red-500 leading-none">+{t.impact}</div>
+                    <div className="text-[10px] text-gray-500 font-black uppercase tracking-widest mt-2">AI Risk Attribution</div>
+                  </div>
+                </motion.div>
+              ))}
+            </div>
+          )}
+        </motion.div>
+      </div>
     </div>
   );
 };
