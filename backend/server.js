@@ -6,30 +6,20 @@ const cors = require('cors');
 const app = express();
 const PORT = process.env.PORT || 5000;
 
-// CORS — open to all origins for development/deployment compatibility
-app.use((req, res, next) => {
-  res.setHeader('Access-Control-Allow-Origin', '*');
-  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
-  if (req.method === 'OPTIONS') return res.sendStatus(200);
-  next();
-});
-
-app.use(cors({ origin: true, credentials: true }));
-
-// Registration debug logging
-app.use((req, res, next) => {
-  if (req.path === '/api/auth/register') {
-    console.log(`[AUTH DEBUG] New Registration Attempt: ${req.body?.email || 'No Email'}`);
-  }
-  next();
-});
-
+// Enable JSON parsing
 app.use(express.json());
+
+// CORS — open to all origins for development/deployment compatibility
+app.use(cors({ origin: true, credentials: true }));
 
 // Request logging middleware
 app.use((req, res, next) => {
-  console.log(`${new Date().toISOString()} - ${req.method} ${req.url}`);
+  const timestamp = new Date().toISOString();
+  if (req.path === '/api/auth/register') {
+    console.log(`[${timestamp}] 👤 Registration Attempt: ${req.body?.email || 'No Email'}`);
+  } else {
+    console.log(`[${timestamp}] ${req.method} ${req.url}`);
+  }
   next();
 });
 
@@ -78,12 +68,17 @@ const connectDB = async () => {
   let uri = process.env.MONGO_URI;
   const isProduction = process.env.NODE_ENV === 'production' || process.env.RENDER === 'true';
   
+  if (uri) {
+    // 🛡️ SANITIZE: Trim spaces and remove accidental quotes from deployment platforms
+    uri = uri.trim().replace(/^["'](.+)["']$/, '$1');
+  }
+
   // 🛡️ SECURITY: Prevent 'fake' DB in production
   const isPlaceholder = !uri || uri.includes('<password>') || uri.includes('username:password') || uri.includes('example.com');
 
   if (isPlaceholder) {
     if (isProduction) {
-      console.error('❌ CRITICAL: No real MONGO_URI provided in Production! Backend cannot start.');
+      console.error('❌ CRITICAL: No real MONGO_URI provided in Environment Variables!');
       process.exit(1);
     } else {
       console.log('⚠️ Development Mode: Autostarting In-Memory MongoDB...');
@@ -93,14 +88,22 @@ const connectDB = async () => {
         uri = mongoServer.getUri();
       } catch(e) {
         console.error('Failed to start memory server:', e);
+        process.exit(1);
       }
     }
   }
 
   try {
+    // Log the scheme to debug "Invalid scheme" error
+    const scheme = uri ? uri.split('://')[0] : 'none';
+    console.log(`📡 Attempting connection (Scheme: ${scheme})...`);
+    
     await mongoose.connect(uri);
     console.log('✅ Connected to MongoDB (Persistent)');
-    app.listen(PORT, () => console.log(`🚀 Server running on port ${PORT}`));
+    app.listen(PORT, () => {
+      console.log(`🚀 Server running on port ${PORT}`);
+      console.log(`🔗 Local link: http://localhost:${PORT}`);
+    });
   } catch (err) {
     console.error('❌ MongoDB Connection Failure:', err.message);
     if (isProduction) process.exit(1);
