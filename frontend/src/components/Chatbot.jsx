@@ -89,19 +89,26 @@ const Chatbot = () => {
               <div ref={messagesEndRef} />
             </div>
 
-            {/* Input Form */}
-            <form onSubmit={handleSend} className="p-3 bg-[rgba(15,23,42,0.9)] border-t border-white/10 flex gap-2 shrink-0">
-              <input
-                type="text"
-                value={input}
-                onChange={e => setInput(e.target.value)}
-                placeholder="Type a message..."
-                className="flex-1 bg-black/40 text-white text-sm rounded-xl px-4 py-2 border border-white/10 outline-none focus:border-primary/50 transition-colors"
-              />
-              <button type="submit" disabled={!input.trim()} className="w-10 h-10 shrink-0 bg-primary hover:bg-primary/80 disabled:opacity-50 text-white rounded-xl flex items-center justify-center transition-colors">
-                <Send size={16} className="-ml-1" />
-              </button>
-            </form>
+            {/* Input Form with Quick Actions */}
+            <div className="bg-[rgba(15,23,42,0.9)] border-t border-white/10 shrink-0">
+              <div className="px-3 py-2 flex gap-2 overflow-x-auto hide-scrollbar">
+                <a href="https://www.google.com/maps/search/nearest+hospital+or+mental+health+clinic" target="_blank" rel="noopener noreferrer" className="shrink-0 flex items-center gap-1.5 px-3 py-1.5 bg-red-500/10 text-red-400 hover:bg-red-500/20 rounded-full text-xs font-bold border border-red-500/20 transition-colors">
+                   🏥 Find Nearest Healthcare
+                </a>
+              </div>
+              <form onSubmit={handleSend} className="p-3 pt-0 flex gap-2">
+                <input
+                  type="text"
+                  value={input}
+                  onChange={e => setInput(e.target.value)}
+                  placeholder="Type a message..."
+                  className="flex-1 bg-black/40 text-white text-sm rounded-xl px-4 py-2 border border-white/10 outline-none focus:border-primary/50 transition-colors"
+                />
+                <button type="submit" disabled={!input.trim()} className="w-10 h-10 shrink-0 bg-primary hover:bg-primary/80 disabled:opacity-50 text-white rounded-xl flex items-center justify-center transition-colors">
+                  <Send size={16} className="-ml-1" />
+                </button>
+              </form>
+            </div>
           </motion.div>
         )}
       </AnimatePresence>

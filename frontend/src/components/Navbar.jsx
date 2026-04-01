@@ -72,16 +72,19 @@ const Navbar = () => {
   };
 
   const handleSOS = async () => {
-    if(window.confirm("Trigger Emergency SOS Alert? This will notify your emergency contact.")) {
+    if(window.confirm("Trigger Emergency SOS Alert? This will draft an emergency text message to your saved contact.")) {
       setSosStatus('loading');
       try {
         await triggerSOS();
         if (eContact?.phone) {
+           const message = encodeURIComponent("Emergency from MindMap AI: I am feeling extremely overwhelmed and need immediate support. Please contact me.");
            const link = document.createElement('a');
-           link.href = `tel:${eContact.phone}`;
+           // Ensure cross-platform compatibility for SMS body
+           const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
+           link.href = `sms:${eContact.phone}${isIOS ? '&' : '?'}body=${message}`;
            link.click();
         } else {
-           alert("SOS Alert triggered! (No emergency phone number saved to dial).");
+           alert("SOS Alert triggered! (No emergency phone number saved to message).");
         }
       } catch (e) {
         alert("Failed to trigger SOS.");
