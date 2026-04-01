@@ -16,7 +16,10 @@ const Journal = () => {
       const res = await getJournals();
       setJournals(res.data);
     } catch (err) {
-      console.error(err);
+      console.error('[Fetch Journals Error]', err);
+      if (err.response?.status === 401) {
+        addToast('Please login to view journal entries.', 'error');
+      }
     } finally {
       setFetching(false);
     }

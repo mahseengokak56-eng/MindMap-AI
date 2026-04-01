@@ -72,7 +72,7 @@ const Navbar = () => {
   };
 
   const handleSOS = async () => {
-    if(window.confirm("Trigger Emergency SOS Alert? This will draft an emergency message to your contact.")) {
+    if(window.confirm("Trigger Emergency SOS Alert? This will open your messaging app to send an emergency message to your contact.")) {
       setSosStatus('loading');
       try {
         const res = await triggerSOS();
@@ -90,14 +90,23 @@ const Navbar = () => {
            link.click();
            document.body.removeChild(link);
            
-           alert(`SOS Alert sent to ${contact.name}! Opening your messaging app...`);
+           alert(`SOS Alert prepared for ${contact.name}! Your messaging app should open now...`);
         } else {
-           alert("SOS Alert triggered! (Please set an Emergency Contact in Settings first).");
+           alert("Please set an Emergency Contact in Settings first (click the gear icon).");
            setShowSettings(true);
         }
-      } catch (e) {
-        console.error("SOS Error:", e);
-        alert(e.response?.data?.error || "Failed to trigger SOS.");
+      } catch (err) {
+        console.error("SOS Error:", err);
+        const errorMsg = err.response?.data?.error || "Failed to trigger SOS";
+        
+        if (errorMsg.includes('No emergency contact')) {
+          alert("Please set an Emergency Contact in Settings first (click the gear icon).");
+          setShowSettings(true);
+        } else if (err.response?.status === 401) {
+          alert("Please login to use the SOS feature.");
+        } else {
+          alert(errorMsg + (err.response?.data?.details ? `: ${err.response.data.details}` : ''));
+        }
       }
       setSosStatus('idle');
     }
