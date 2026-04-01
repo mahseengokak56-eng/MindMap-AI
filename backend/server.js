@@ -33,12 +33,19 @@ app.get('/', (req, res) => {
 });
 
 // Routes
-app.use('/api/auth',        require('./routes/auth'));
-app.use('/api/mood',        require('./routes/moods'));
-app.use('/api/activity',    require('./routes/activities'));
-app.use('/api/predict',     require('./routes/predictions').predictRouter);
+app.use('/api/auth', require('./routes/auth'));
+app.use('/api/mood', require('./routes/moods'));
+app.use('/api/activity', require('./routes/activities'));
+app.use('/api/predict', require('./routes/predictions').predictRouter);
 app.use('/api/suggestions', require('./routes/predictions').suggestionsRouter);
-app.use('/api/sos',         require('./routes/sos'));
+app.use('/api/sos', require('./routes/sos'));
+
+app.get("/api/health", (req, res) => {
+  res.status(200).json({
+    status: "OK",
+    message: "Server is running 🚀"
+  });
+});
 
 // 404 handler
 app.use((req, res) => {
