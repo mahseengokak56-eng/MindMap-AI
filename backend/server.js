@@ -59,14 +59,29 @@ app.use((err, req, res, next) => {
 });
 
 // DB + Server start
-mongoose
-  .connect(process.env.MONGO_URI || 'mongodb://localhost:27017/mindmap_ai')
-  .then(() => {
+const connectDB = async () => {
+  let uri = process.env.MONGO_URI;
+  
+  // If the user hasn't provided a real DB link, we spin up an invisible local DB automatically
+  if (!uri || uri.includes('username:password') || uri.includes('cluster0')) {
+    console.log('⚠️ No real MONGO_URI detected in .env! Autostarting a temporary In-Memory MongoDB Server...');
+    try {
+      const { MongoMemoryServer } = require('mongodb-memory-server');
+      const mongoServer = await MongoMemoryServer.create();
+      uri = mongoServer.getUri();
+    } catch(e) {
+      console.error('Failed to start memory server:', e);
+    }
+  }
+
+  try {
+    await mongoose.connect(uri || 'mongodb://localhost:27017/mindmap_ai');
     console.log('✅ Connected to MongoDB');
     app.listen(PORT, () => console.log(`🚀 Server running on http://localhost:${PORT}`));
-  })
-  .catch((err) => {
+  } catch (err) {
     console.error('❌ MongoDB connection error:', err.message);
-    // Still start server for health-check purposes even if DB fails
     app.listen(PORT, () => console.log(`⚠️  Server running (no DB) on port ${PORT}`));
-  });
+  }
+};
+
+connectDB();
