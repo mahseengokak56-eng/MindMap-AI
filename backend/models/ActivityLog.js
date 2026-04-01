@@ -2,9 +2,9 @@ const mongoose = require('mongoose');
 
 const ActivityLogSchema = new mongoose.Schema({
   userId: {
-    type: String,
-    required: true,
-    default: 'mock-user-123'
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'User',
+    required: true
   },
   screenTimeHours: {
     type: Number,

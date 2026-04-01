@@ -33,6 +33,7 @@ app.get('/', (req, res) => {
 });
 
 // Routes
+app.use('/api/auth',        require('./routes/auth'));
 app.use('/api/mood',        require('./routes/moods'));
 app.use('/api/activity',    require('./routes/activities'));
 app.use('/api/predict',     require('./routes/predictions').predictRouter);

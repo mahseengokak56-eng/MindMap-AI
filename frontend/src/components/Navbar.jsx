@@ -1,11 +1,13 @@
 import { Link, useLocation } from 'react-router-dom';
-import { Activity, Brain, PenLine, AlertCircle } from 'lucide-react';
+import { Activity, Brain, PenLine, AlertCircle, LogOut } from 'lucide-react';
 import { useState } from 'react';
 import { triggerSOS } from '../services/api';
+import { useAuth } from '../context/AuthContext';
 
 const Navbar = () => {
   const location = useLocation();
   const [sosStatus, setSosStatus] = useState('idle');
+  const { isAuthenticated, logout } = useAuth();
 
   const handleSOS = async () => {
     if(window.confirm("Trigger Emergency SOS Alert? This will notify your emergency contact.")) {
@@ -33,31 +35,51 @@ const Navbar = () => {
         </Link>
         
         <div className="flex items-center gap-2 sm:gap-6">
-          <Link 
-            to="/" 
-            className={`flex items-center gap-2 px-3 py-2 rounded-lg transition-colors ${location.pathname === '/' ? 'text-primary bg-primary/10' : 'text-gray-400 hover:text-gray-200 hover:bg-white/5'}`}
-          >
-            <Activity size={20} />
-            <span className="hidden sm:inline font-medium">Dashboard</span>
-          </Link>
-          <Link 
-             to="/log"
-             className={`flex items-center gap-2 px-3 py-2 rounded-lg transition-colors ${location.pathname === '/log' ? 'text-primary bg-primary/10' : 'text-gray-400 hover:text-gray-200 hover:bg-white/5'}`}
-          >
-            <PenLine size={20} />
-            <span className="hidden sm:inline font-medium">Log Tracker</span>
-          </Link>
-          
-          <div className="w-px h-6 bg-white/10 mx-2 hidden sm:block"></div>
-          
-          <button 
-            onClick={handleSOS}
-            disabled={sosStatus === 'loading'}
-            className="flex items-center gap-2 px-4 py-2 rounded-lg bg-red-500/10 text-red-500 hover:bg-red-500 hover:text-white transition-all font-bold border border-red-500/20 active:scale-95"
-          >
-            <AlertCircle size={20} className={sosStatus === 'loading' ? 'animate-pulse' : ''} />
-            <span className="hidden sm:inline">SOS</span>
-          </button>
+          {isAuthenticated ? (
+            <>
+              <Link 
+                to="/" 
+                className={`flex items-center gap-2 px-3 py-2 rounded-lg transition-colors ${location.pathname === '/' ? 'text-primary bg-primary/10' : 'text-gray-400 hover:text-gray-200 hover:bg-white/5'}`}
+              >
+                <Activity size={20} />
+                <span className="hidden sm:inline font-medium">Dashboard</span>
+              </Link>
+              <Link 
+                 to="/log"
+                 className={`flex items-center gap-2 px-3 py-2 rounded-lg transition-colors ${location.pathname === '/log' ? 'text-primary bg-primary/10' : 'text-gray-400 hover:text-gray-200 hover:bg-white/5'}`}
+              >
+                <PenLine size={20} />
+                <span className="hidden sm:inline font-medium">Tracker</span>
+              </Link>
+              
+              <div className="w-px h-6 bg-white/10 mx-2 hidden sm:block"></div>
+              
+              <button 
+                onClick={handleSOS}
+                disabled={sosStatus === 'loading'}
+                className="flex items-center gap-2 px-4 py-2 rounded-lg bg-red-500/10 text-red-500 hover:bg-red-500 hover:text-white transition-all font-bold border border-red-500/20 active:scale-95"
+              >
+                <AlertCircle size={20} className={sosStatus === 'loading' ? 'animate-pulse' : ''} />
+                <span className="hidden sm:inline">SOS</span>
+              </button>
+
+              <button 
+                onClick={logout}
+                className="flex items-center gap-2 px-3 py-2 rounded-lg text-gray-400 hover:text-white hover:bg-white/5 transition-colors"
+                title="Logout"
+              >
+                <LogOut size={20} />
+              </button>
+            </>
+          ) : (
+            <>
+              {location.pathname !== '/login' && location.pathname !== '/register' && (
+                <Link to="/login" className="flex items-center gap-2 px-4 py-2 rounded-lg bg-primary/10 text-primary font-bold hover:bg-primary hover:text-white transition-colors">
+                  Login / Register
+                </Link>
+              )}
+            </>
+          )}
         </div>
       </div>
     </nav>

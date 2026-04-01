@@ -9,6 +9,20 @@ const api = axios.create({
   },
 });
 
+api.interceptors.request.use(
+  (config) => {
+    const token = localStorage.getItem('token');
+    if (token) {
+      config.headers['Authorization'] = `Bearer ${token}`;
+    }
+    return config;
+  },
+  (error) => Promise.reject(error)
+);
+
+export const registerUser = (data) => api.post('/auth/register', data);
+export const loginUser = (data) => api.post('/auth/login', data);
+
 export const getMoodHistory = () => api.get('/mood/history');
 export const logMood = (data) => api.post('/mood', data);
 export const getActivityHistory = () => api.get('/activity');

@@ -5,12 +5,13 @@ const suggestionsRouter = express.Router();
 const MoodLog = require('../models/MoodLog');
 const ActivityLog = require('../models/ActivityLog');
 const Prediction = require('../models/Prediction');
+const authMiddleware = require('../middleware/auth');
 
 // GET /api/predict
-predictRouter.get('/', async (req, res) => {
+predictRouter.get('/', authMiddleware, async (req, res) => {
   try {
-    const latestActivity = await ActivityLog.findOne().sort({ createdAt: -1 });
-    const recentMoods = await MoodLog.find().sort({ createdAt: -1 }).limit(3);
+    const latestActivity = await ActivityLog.findOne({ userId: req.userId }).sort({ createdAt: -1 });
+    const recentMoods = await MoodLog.find({ userId: req.userId }).sort({ createdAt: -1 }).limit(3);
 
     let riskScore = 0;
     const triggerDetails = [];
@@ -102,7 +103,7 @@ predictRouter.get('/', async (req, res) => {
     }
 
     // Save prediction
-    const predictionDoc = new Prediction({ riskScore, status, suggestions, triggerDetails });
+    const predictionDoc = new Prediction({ userId: req.userId, riskScore, status, suggestions, triggerDetails });
     await predictionDoc.save();
 
     res.status(200).json({ riskScore, status, suggestions, triggerDetails });
@@ -113,9 +114,9 @@ predictRouter.get('/', async (req, res) => {
 });
 
 // GET /api/suggestions
-suggestionsRouter.get('/', async (req, res) => {
+suggestionsRouter.get('/', authMiddleware, async (req, res) => {
   try {
-    const latestPrediction = await Prediction.findOne().sort({ createdAt: -1 });
+    const latestPrediction = await Prediction.findOne({ userId: req.userId }).sort({ createdAt: -1 });
     if (!latestPrediction) {
       return res.status(200).json({
         suggestions: ['Start tracking your moods and activities to get personalized suggestions!']

@@ -2,9 +2,9 @@ const mongoose = require('mongoose');
 
 const MoodLogSchema = new mongoose.Schema({
   userId: {
-    type: String,
-    required: true,
-    default: 'mock-user-123'
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'User',
+    required: true
   },
   emoji: {
     type: String,

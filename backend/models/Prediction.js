@@ -6,6 +6,11 @@ const TriggerDetailSchema = new mongoose.Schema({
 }, { _id: false });
 
 const PredictionSchema = new mongoose.Schema({
+  userId: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'User',
+    required: true
+  },
   riskScore: {
     type: Number,
     required: true,
