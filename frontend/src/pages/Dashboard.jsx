@@ -4,7 +4,7 @@ import {
   LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer,
   BarChart, Bar, Legend, CartesianGrid, RadialBarChart, RadialBar
 } from 'recharts';
-import { BatteryWarning, TrendingUp, Clock, Activity, AlertTriangle, Zap, Moon, Monitor, Brain, RefreshCw } from 'lucide-react';
+import { BatteryWarning, TrendingUp, Clock, Activity, AlertTriangle, Zap, Moon, Monitor, Brain, RefreshCw, Flame } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { Link } from 'react-router-dom';
 
@@ -41,6 +41,7 @@ const Dashboard = () => {
   const [prediction, setPrediction] = useState(null);
   const [moods, setMoods] = useState([]);
   const [activities, setActivities] = useState([]);
+  const [profile, setProfile] = useState(null);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [lastActivity, setLastActivity]= useState(null);
@@ -50,13 +51,15 @@ const Dashboard = () => {
     if (isRefresh) setRefreshing(true);
     else setLoading(true);
     try {
-      const [predRes, moodsRes, actRes] = await Promise.all([
+      const [predRes, moodsRes, actRes, profRes] = await Promise.all([
         getPrediction(),
         getMoodHistory(),
-        getActivityHistory()
+        getActivityHistory(),
+        getProfile()
       ]);
 
       setPrediction(predRes.data);
+      setProfile(profRes.data);
 
       const moodData = moodsRes.data;
       if (moodData.length) setLastMood(moodData[moodData.length - 1]);
@@ -227,6 +230,9 @@ const Dashboard = () => {
             </motion.div>
             <motion.div initial={{ y: 20, opacity: 0 }} animate={{ y: 0, opacity: 1 }} transition={{ delay: 0.25 }}>
               <StatCard icon={<Brain size={28} />} label="Total Logs" value={moods.length} sub="Mood entries tracked" color="text-emerald-400" />
+            </motion.div>
+            <motion.div initial={{ y: 20, opacity: 0 }} animate={{ y: 0, opacity: 1 }} transition={{ delay: 0.3 }}>
+              <StatCard icon={<Flame size={28} />} label="Daily Streak" value={`${profile?.currentStreak || 0} Days`} sub="Keep it going! 🔥" color="text-orange-500" />
             </motion.div>
           </div>
 
