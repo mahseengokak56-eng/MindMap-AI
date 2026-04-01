@@ -6,9 +6,6 @@ import { Brain, Zap, Activity, Shield, ArrowRight, Heart, Sparkles, Monitor, Moo
 const Landing = () => {
   const { isAuthenticated } = useAuth();
 
-  // If user is already logged in, take them straight to their dashboard
-  if (isAuthenticated) return <Navigate to="/dashboard" />;
-
   return (
     <div className="relative -mt-8 overflow-hidden">
       {/* Background Orbs */}
