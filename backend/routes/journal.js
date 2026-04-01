@@ -39,6 +39,7 @@ router.post('/', authMiddleware, async (req, res) => {
     // Handle Streak Logic
     const user = await User.findById(req.userId);
     if (!user) {
+      console.error(`[Journal] User not found for ID: ${req.userId}`);
       return res.status(404).json({ error: 'User not found. Your session may have expired or the database was reset. Please re-login.' });
     }
 
@@ -65,14 +66,16 @@ router.post('/', authMiddleware, async (req, res) => {
     user.lastLogDate = now;
     await user.save();
 
+    console.log(`[Journal] Entry saved for user ${req.userId}, streak: ${user.currentStreak}`);
+
     res.status(201).json({ 
       message: 'Journal entry saved', 
       sentimentScore, 
       streak: user.currentStreak 
     });
   } catch (err) {
-    console.error(err);
-    res.status(500).json({ error: 'Server error' });
+    console.error('[Journal Error]', err.message);
+    res.status(500).json({ error: 'Server error', details: err.message });
   }
 });
 

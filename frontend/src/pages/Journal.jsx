@@ -37,7 +37,17 @@ const Journal = () => {
       setEntry('');
       fetchJournals();
     } catch (err) {
-      addToast('Failed to save journal entry.', 'error');
+      console.error('[Journal Save Error]', err);
+      const errorMsg = err.response?.data?.error || 'Failed to save journal entry';
+      const details = err.response?.data?.details || '';
+      
+      if (errorMsg.includes('User not found') || errorMsg.includes('session')) {
+        addToast('Session expired. Please login again.', 'error');
+      } else if (err.response?.status === 401) {
+        addToast('Please login to save journal entries.', 'error');
+      } else {
+        addToast(`${errorMsg}${details ? ': ' + details : ''}`, 'error');
+      }
     } finally {
       setLoading(false);
     }
