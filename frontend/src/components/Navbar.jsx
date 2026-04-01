@@ -1,20 +1,31 @@
 import { Link, useLocation } from 'react-router-dom';
-import { Activity, Brain, PenLine, AlertCircle, LogOut, Settings, PlayCircle, PauseCircle, Headphones } from 'lucide-react';
+import { Activity, Brain, PenLine, AlertCircle, LogOut, Settings, PlayCircle, PauseCircle, Headphones, Music, CloudRain, Wind } from 'lucide-react';
 import { useState, useRef, useEffect } from 'react';
 import { triggerSOS, getProfile } from '../services/api';
 import { useAuth } from '../context/AuthContext';
 import EmergencySettings from './EmergencySettings';
 
+const TRACKS = [
+  { id: 'ocean', name: 'Ocean Waves', icon: Headphones, url: 'https://actions.google.com/sounds/v1/water/ocean_waves_steady.ogg' },
+  { id: 'rain',  name: 'Rain & Thunder', icon: CloudRain, url: 'https://actions.google.com/sounds/v1/weather/rain_on_roof.ogg' },
+  { id: 'ambient', name: 'Calm Melody', icon: Music, url: 'https://cdn.pixabay.com/download/audio/2022/05/27/audio_1808fbf07a.mp3' },
+  { id: 'wind',  name: 'Desert Wind', icon: Wind, url: 'https://actions.google.com/sounds/v1/weather/strong_wind.ogg' }
+];
+
 const Navbar = () => {
   const location = useLocation();
   const [sosStatus, setSosStatus] = useState('idle');
   const [showSettings, setShowSettings] = useState(false);
+  const [showMusicMenu, setShowMusicMenu] = useState(false);
+
   const [eContact, setEContact] = useState(null);
   const [isPlaying, setIsPlaying] = useState(false);
+  const [currentTrack, setCurrentTrack] = useState(TRACKS[0]);
+  
   const { isAuthenticated, logout } = useAuth();
   
   // Soothing Music Audio Object
-  const audioRef = useRef(new Audio('https://actions.google.com/sounds/v1/water/ocean_waves_steady.ogg'));
+  const audioRef = useRef(new Audio(TRACKS[0].url));
 
   useEffect(() => {
     if (isAuthenticated) {
@@ -37,10 +48,27 @@ const Navbar = () => {
   const toggleMusic = () => {
     if (isPlaying) {
       audioRef.current.pause();
+      setIsPlaying(false);
     } else {
       audioRef.current.play().catch(e => console.log('Audio play failed', e));
+      setIsPlaying(true);
     }
-    setIsPlaying(!isPlaying);
+  };
+
+  const changeTrack = (track) => {
+    const wasPlaying = !audioRef.current.paused;
+    audioRef.current.pause();
+    audioRef.current.src = track.url;
+    audioRef.current.load();
+    setCurrentTrack(track);
+    setShowMusicMenu(false);
+    
+    if (wasPlaying) {
+      audioRef.current.play().catch(e => console.log(e));
+      setIsPlaying(true);
+    } else {
+      setIsPlaying(false);
+    }
   };
 
   const handleSOS = async () => {
@@ -49,7 +77,6 @@ const Navbar = () => {
       try {
         await triggerSOS();
         if (eContact?.phone) {
-           // Create a link dynamically and click it because window.location.href='tel:' sometimes gets blocked contextually
            const link = document.createElement('a');
            link.href = `tel:${eContact.phone}`;
            link.click();
@@ -79,20 +106,50 @@ const Navbar = () => {
           <div className="flex items-center gap-2 sm:gap-6">
             {isAuthenticated ? (
               <>
-                <button
-                  onClick={toggleMusic}
-                  className={`flex items-center gap-2 px-3 py-2 rounded-lg transition-colors ${isPlaying ? 'text-emerald-400 bg-emerald-500/10 border border-emerald-500/20' : 'text-gray-400 hover:text-white hover:bg-white/5'}`}
-                  title="Calming Sounds"
-                >
-                  {isPlaying ? <PauseCircle size={20} className="animate-pulse" /> : <Headphones size={20} />}
-                  <span className="hidden sm:inline font-medium text-sm">{isPlaying ? 'Playing...' : 'Relax'}</span>
-                </button>
+                {/* Music Player Dropdown Container */}
+                <div className="relative">
+                  <div className={`flex flex-col sm:flex-row items-center rounded-lg transition-colors border ${isPlaying ? 'bg-emerald-500/10 border-emerald-500/20 text-emerald-400' : 'border-transparent text-gray-400 hover:text-white hover:bg-white/5'}`}>
+                    <button onClick={toggleMusic} className="flex items-center gap-2 px-3 py-2 sm:border-r border-current/20 active:scale-95 transition-transform" title="Play/Pause Context Music">
+                      {isPlaying ? <PauseCircle size={20} className="animate-pulse" /> : <PlayCircle size={20} />}
+                      <span className="hidden sm:inline font-medium text-sm w-24 text-left truncate">{isPlaying ? currentTrack.name : 'Focus Sounds'}</span>
+                    </button>
+                    <button onClick={() => setShowMusicMenu(!showMusicMenu)} className="hidden sm:flex px-2 py-2 hover:bg-white/10 rounded-r-lg transition-colors" title="Change Atmosphere">
+                      <Music size={16} />
+                    </button>
+                  </div>
+
+                  {/* Dropdown Menu */}
+                  {showMusicMenu && (
+                    <>
+                      <div className="fixed inset-0 z-40" onClick={() => setShowMusicMenu(false)} />
+                      <div className="absolute top-12 right-0 w-48 bg-gray-900 border border-white/10 rounded-xl overflow-hidden shadow-2xl z-50 animate-[fadeIn_0.1s_ease-out]">
+                        <div className="text-[10px] font-black text-gray-500 uppercase tracking-widest p-3 pb-2 border-b border-white/5 bg-black/50">Select Atmosphere</div>
+                        <div className="p-1 flex flex-col">
+                          {TRACKS.map(t => {
+                            const Icon = t.icon;
+                            const active = currentTrack.id === t.id;
+                            return (
+                              <button 
+                                key={t.id} 
+                                onClick={() => changeTrack(t)}
+                                className={`flex items-center gap-3 px-3 py-2.5 text-sm rounded-lg transition-colors text-left ${active ? 'bg-primary/20 text-primary font-semibold' : 'text-gray-300 hover:bg-white/10 hover:text-white'}`}
+                              >
+                                <Icon size={16} className={active ? 'text-primary' : 'text-gray-500'} />
+                                {t.name}
+                              </button>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    </>
+                  )}
+                </div>
 
                 <div className="w-px h-6 bg-white/10 mx-1 hidden sm:block"></div>
 
                 <Link 
                   to="/" 
-                  className={`flex items-center gap-2 px-3 py-2 rounded-lg transition-colors ${location.pathname === '/' ? 'text-primary bg-primary/10' : 'text-gray-400 hover:text-white hover:bg-white/5'}`}
+                  className={`flex items-center gap-2 px-3 py-2 rounded-lg transition-colors ${location.pathname === '/' ? 'text-primary bg-primary/10' : 'text-gray-400 hover:text-gray-200 hover:bg-white/5'}`}
                 >
                   <Activity size={20} />
                   <span className="hidden sm:inline font-medium">Dashboard</span>
