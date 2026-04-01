@@ -1,6 +1,7 @@
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import Navbar from './components/Navbar';
 import Dashboard from './pages/Dashboard';
+import Landing from './pages/Landing';
 import Logger from './pages/Logger';
 import Journal from './pages/Journal';
 import Login from './pages/Login';
@@ -31,9 +32,10 @@ function App() {
             <Navbar />
             <main className="flex-grow container mx-auto px-4 py-8">
               <Routes>
+                <Route path="/" element={<Landing />} />
                 <Route path="/login" element={<Login />} />
                 <Route path="/register" element={<Register />} />
-                <Route path="/" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
+                <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
                 <Route path="/log" element={<ProtectedRoute><Logger /></ProtectedRoute>} />
                 <Route path="/journal" element={<ProtectedRoute><Journal /></ProtectedRoute>} />
                 <Route path="*" element={<Navigate to="/" />} />

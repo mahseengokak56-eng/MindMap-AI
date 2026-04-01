@@ -107,7 +107,7 @@ const Navbar = () => {
     <>
       <nav className="sticky top-0 z-50 bg-[rgba(15,23,42,0.8)] backdrop-blur-xl border-b border-[rgba(255,255,255,0.05)]">
         <div className="container mx-auto px-4 h-16 flex items-center justify-between">
-          <Link to="/" className="flex items-center gap-2 group">
+          <Link to={isAuthenticated ? "/dashboard" : "/"} className="flex items-center gap-2 group">
             <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-primary to-fuchsia-500 flex items-center justify-center text-white shadow-lg shadow-primary/30 group-hover:scale-110 transition-transform">
               <Brain size={24} />
             </div>
@@ -161,8 +161,8 @@ const Navbar = () => {
                 <div className="w-px h-6 bg-white/10 mx-1 hidden sm:block"></div>
 
                 <Link 
-                  to="/" 
-                  className={`flex items-center gap-2 px-3 py-2 rounded-lg transition-colors ${location.pathname === '/' ? 'text-primary bg-primary/10' : 'text-gray-400 hover:text-gray-200 hover:bg-white/5'}`}
+                  to="/dashboard" 
+                  className={`flex items-center gap-2 px-3 py-2 rounded-lg transition-colors ${location.pathname === '/dashboard' ? 'text-primary bg-primary/10' : 'text-gray-400 hover:text-gray-200 hover:bg-white/5'}`}
                 >
                   <Activity size={20} />
                   <span className="hidden sm:inline font-medium">Dashboard</span>
