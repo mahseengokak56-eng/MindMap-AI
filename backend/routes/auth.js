@@ -9,14 +9,18 @@ const User = require('../models/User');
 // @desc    Register a user
 router.post('/register', async (req, res) => {
   const { name, email, password } = req.body;
+  
+  console.log(`[REGISTER ATTEMPT] Name: ${name}, Email: ${email}, Password length: ${password?.length || 0}`);
 
   try {
     if (!name || !email || !password) {
+      console.log('[REGISTER FAILED] Missing fields');
       return res.status(400).json({ error: 'Please enter all fields' });
     }
 
     let user = await User.findOne({ email });
     if (user) {
+      console.log(`[REGISTER FAILED] User already exists: ${email}`);
       return res.status(400).json({ error: 'User already exists' });
     }
 
@@ -27,6 +31,7 @@ router.post('/register', async (req, res) => {
     user.password = await bcrypt.hash(password, salt);
 
     await user.save();
+    console.log(`[REGISTER SUCCESS] User created: ${email}`);
 
     // Return JWT
     const payload = { user: { id: user.id } };

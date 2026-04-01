@@ -8,7 +8,19 @@ const PORT = process.env.PORT || 5000;
 
 // ─── MIDDLEWARE ───────────────────────────────────────────────
 app.use(express.json());
-app.use(cors({ origin: '*', credentials: true }));
+
+// Request logging middleware
+app.use((req, res, next) => {
+  console.log(`[${new Date().toISOString()}] ${req.method} ${req.path} - Origin: ${req.headers.origin || 'no-origin'}`);
+  next();
+});
+
+app.use(cors({ 
+  origin: function (origin, callback) {
+    callback(null, true);
+  }, 
+  credentials: true 
+}));
 
 // ─── HEALTH CHECK ─────────────────────────────────────────────
 app.get('/', (req, res) => {

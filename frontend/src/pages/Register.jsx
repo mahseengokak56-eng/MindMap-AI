@@ -9,6 +9,7 @@ import { motion } from 'framer-motion';
 const Register = () => {
   const [formData, setFormData] = useState({ name: '', email: '', password: '' });
   const [loading, setLoading] = useState(false);
+  const [debugInfo, setDebugInfo] = useState('');
   const navigate = useNavigate();
   const { login } = useAuth();
   const { addToast } = useToast();
@@ -16,13 +17,34 @@ const Register = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
+    
+    console.log('[Register] Attempting registration with:', { name: formData.name, email: formData.email });
+    console.log('[Register] API URL:', import.meta.env.VITE_API_URL);
+    
     try {
       const res = await registerUser(formData);
+      console.log('[Register] Success:', res.data);
       login(res.data.token, res.data.user);
       addToast('Account created successfully!', 'success');
       navigate('/');
     } catch (err) {
-      addToast(err.response?.data?.error || 'Registration failed', 'error');
+      console.error('[Register] Full error:', err);
+      console.error('[Register] Response:', err.response);
+      console.error('[Register] Request config:', err.config);
+      
+      const errorMsg = err.response?.data?.error || 'Registration failed';
+      const details = err.response?.data?.details || '';
+      const status = err.response?.status;
+      
+      console.error(`[Register] Error ${status}: ${errorMsg} ${details}`);
+      
+      if (status === 500) {
+        addToast(`Server error: ${details || 'Check Render logs'}`, 'error');
+      } else if (err.message === 'Network Error') {
+        addToast('Cannot connect to server. CORS or network issue.', 'error');
+      } else {
+        addToast(`${errorMsg}${details ? ': ' + details : ''}`, 'error');
+      }
     } finally {
       setLoading(false);
     }
