@@ -72,22 +72,32 @@ const Navbar = () => {
   };
 
   const handleSOS = async () => {
-    if(window.confirm("Trigger Emergency SOS Alert? This will draft an emergency text message to your saved contact.")) {
+    if(window.confirm("Trigger Emergency SOS Alert? This will draft an emergency message to your contact.")) {
       setSosStatus('loading');
       try {
-        await triggerSOS();
-        if (eContact?.phone) {
-           const message = encodeURIComponent("Emergency from MindMap AI: I am feeling extremely overwhelmed and need immediate support. Please contact me.");
-           const link = document.createElement('a');
-           // Ensure cross-platform compatibility for SMS body
+        const res = await triggerSOS();
+        const contact = res.data.contact || eContact;
+
+        if (contact?.phone) {
+           const message = encodeURIComponent(`Emergency from MindMap AI: I am feeling extremely overwhelmed and need immediate support. Please contact me.`);
            const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
-           link.href = `sms:${eContact.phone}${isIOS ? '&' : '?'}body=${message}`;
+           const smsUrl = `sms:${contact.phone}${isIOS ? '&' : '?'}body=${message}`;
+           
+           // Create a ghost link to trigger SMS reliably
+           const link = document.createElement('a');
+           link.href = smsUrl;
+           document.body.appendChild(link);
            link.click();
+           document.body.removeChild(link);
+           
+           alert(`SOS Alert sent to ${contact.name}! Opening your messaging app...`);
         } else {
-           alert("SOS Alert triggered! (No emergency phone number saved to message).");
+           alert("SOS Alert triggered! (Please set an Emergency Contact in Settings first).");
+           setShowSettings(true);
         }
       } catch (e) {
-        alert("Failed to trigger SOS.");
+        console.error("SOS Error:", e);
+        alert(e.response?.data?.error || "Failed to trigger SOS.");
       }
       setSosStatus('idle');
     }
