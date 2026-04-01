@@ -39,7 +39,11 @@ router.post('/register', async (req, res) => {
       }
     );
   } catch (err) {
-    console.error(err);
+    console.error('[REGISTRATION ERROR DETAILED]:', {
+      message: err.message,
+      stack: err.stack,
+      dbState: mongoose.connection.readyState // 0: disconnected, 1: connected
+    });
     res.status(500).json({ error: 'Server error', details: err.message });
   }
 });

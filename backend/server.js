@@ -32,6 +32,14 @@ app.use((req, res, next) => {
   next();
 });
 
+// ⚡ EXTRA LOGGING FOR REGISTRATION DEBUGGING
+app.use((req, res, next) => {
+  if (req.path === '/api/auth/register') {
+    console.log(`[AUTH DEBUG] New Registration Attempt: ${req.body?.email || 'No Email'}`);
+  }
+  next();
+});
+
 app.use(cors({ origin: allowedOrigins, credentials: true }));
 
 app.use(express.json());
