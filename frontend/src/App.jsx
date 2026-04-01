@@ -8,10 +8,17 @@ import Toast from './components/Toast';
 import { ToastProvider } from './context/ToastContext';
 import { AuthProvider, useAuth } from './context/AuthContext';
 
+import Chatbot from './components/Chatbot';
+
 const ProtectedRoute = ({ children }) => {
   const { isAuthenticated } = useAuth();
   if (!isAuthenticated) return <Navigate to="/login" />;
-  return children;
+  return (
+    <>
+      {children}
+      <Chatbot />
+    </>
+  );
 };
 
 function App() {

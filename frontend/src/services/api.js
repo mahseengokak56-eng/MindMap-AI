@@ -30,5 +30,8 @@ export const logActivity = (data) => api.post('/activity', data);
 export const getPrediction = () => api.get('/predict');
 export const getSuggestions = () => api.get('/suggestions');
 export const triggerSOS = () => api.post('/sos');
+export const sendMessage = (data) => api.post('/chat', data);
+export const getProfile = () => api.get('/profile');
+export const updateEmergencyContact = (data) => api.put('/profile/emergency', data);
 
 export default api;

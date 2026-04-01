@@ -29,6 +29,8 @@ app.use('/api/activity', require('./routes/activities'));
 app.use('/api/predict', require('./routes/predictions').predictRouter);
 app.use('/api/suggestions', require('./routes/predictions').suggestionsRouter);
 app.use('/api/sos', require('./routes/sos'));
+app.use('/api/chat', require('./routes/chat'));
+app.use('/api/profile', require('./routes/profile'));
 
 app.get("/api/health", (req, res) => {
   res.status(200).json({
