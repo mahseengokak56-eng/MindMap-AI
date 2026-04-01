@@ -15,9 +15,13 @@ router.post('/', authMiddleware, async (req, res) => {
     // const twilio = require('twilio')(sid, auth);
     // await twilio.messages.create({ ... });
 
+    console.log(`🚨 SOS ALERT TRIGGERED 🚨`);
+    console.log(`Sending emergency message to: ${user.emergencyContact.name} (${user.emergencyContact.phone})`);
+    console.log(`Message Content: "Emergency from MindMap AI: I am feeling extremely overwhelmed and need immediate support. Please contact me."`);
+
     res.status(200).json({
       success: true,
-      message: `SOS Alert triggered for ${user.emergencyContact.name}`,
+      message: `SOS Alert sent to ${user.emergencyContact.name}`,
       contact: user.emergencyContact
     });
   } catch(err) {

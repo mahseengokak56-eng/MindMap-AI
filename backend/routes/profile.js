@@ -17,14 +17,23 @@ router.get('/', authMiddleware, async (req, res) => {
 router.put('/emergency', authMiddleware, async (req, res) => {
   try {
     const { name, phone } = req.body;
-    const user = await User.findByIdAndUpdate(
-      req.userId,
-      { $set: { emergencyContact: { name, phone } } },
-      { new: true }
-    ).select('-password');
+    const user = await User.findById(req.userId);
+    
+    if (!user) {
+      return res.status(404).json({ error: 'User not found' });
+    }
+
+    user.emergencyContact = {
+      name: name || '',
+      phone: phone || ''
+    };
+
+    await user.save();
+    
     res.json(user);
   } catch (err) {
-    res.status(500).json({ error: 'Server error' });
+    console.error('Emergency Contact Save Error:', err);
+    res.status(500).json({ error: 'Server error', details: err.message });
   }
 });
 
