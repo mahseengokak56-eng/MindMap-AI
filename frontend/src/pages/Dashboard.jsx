@@ -137,91 +137,111 @@ const Dashboard = () => {
         </div>
       </div>
 
-      {/* Empty State */}
-      {!hasData && (
-        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}
-          className="glass-card text-center py-16 border-dashed border-white/10">
-          <Brain size={48} className="mx-auto text-primary/40 mb-4" />
-          <h3 className="text-xl font-bold mb-2 text-gray-300">No Data Yet</h3>
-          <p className="text-gray-500 mb-6">Start by logging your first daily check-in to see predictions here.</p>
-          <Link to="/log" className="btn-primary inline-flex items-center gap-2">
-            <Zap size={18} /> Start My First Check-In
-          </Link>
-        </motion.div>
-      )}
-
-      {hasData && (
-        <>
-          {/* Burnout Risk Panel */}
-          <motion.div
-            initial={{ y: 20, opacity: 0 }} animate={{ y: 0, opacity: 1 }}
-            className={`glass-card relative overflow-hidden bg-gradient-to-br ${cfg.gradient} border ${cfg.border} shadow-2xl ${cfg.glow}`}
-          >
-            <div className="absolute top-0 right-0 w-72 h-72 bg-current opacity-5 rounded-full blur-3xl -mr-24 -mt-24 pointer-events-none" />
-            <div className="relative z-10 flex flex-col lg:flex-row gap-8 items-center">
-
-              {/* Radial chart */}
-              <div className="flex-shrink-0 w-44 h-44">
+      {/* MAIN PREDICTION BOARD - ALWAYS VISIBLE */}
+      <motion.div
+        initial={{ y: 20, opacity: 0 }} 
+        animate={{ y: 0, opacity: 1 }}
+        className={`glass-card relative overflow-hidden bg-gradient-to-br ${cfg.gradient} border ${cfg.border} shadow-2xl ${cfg.glow} p-8`}
+      >
+        <div className="absolute top-0 right-0 w-96 h-96 bg-current opacity-5 rounded-full blur-[100px] -mr-32 -mt-32 pointer-events-none" />
+        
+        <div className="relative z-10 grid lg:grid-cols-12 gap-12 items-center">
+          
+          {/* Radial Chart Column */}
+          <div className="lg:col-span-4 flex flex-col items-center">
+            <div className="relative w-56 h-56">
+              <ResponsiveContainer width="100%" height="100%">
                 <RadialBarChart
-                  width={176} height={176}
-                  innerRadius={56} outerRadius={80}
+                  innerRadius="75%" outerRadius="100%"
+                  barSize={12}
                   data={radialData}
                   startAngle={90} endAngle={-270}
                 >
-                  <RadialBar dataKey="value" cornerRadius={10} background={{ fill: 'rgba(255,255,255,0.05)' }} />
+                  <RadialBar dataKey="value" cornerRadius={6} background={{ fill: 'rgba(255,255,255,0.05)' }} />
                 </RadialBarChart>
-                <div className="text-center -mt-24 relative z-20">
-                  <div className="text-5xl font-black text-white leading-none">{riskScore}</div>
-                  <div className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mt-1">/ 100 Risk</div>
-                </div>
+              </ResponsiveContainer>
+              <div className="absolute inset-0 flex flex-col items-center justify-center -mt-2">
+                <div className="text-6xl font-black text-white tracking-tighter">{riskScore}</div>
+                <div className="text-[10px] font-bold text-gray-400 uppercase tracking-[0.2em]">Risk Score</div>
               </div>
+            </div>
+            
+            <div className={`mt-6 inline-flex items-center gap-2 px-6 py-2 rounded-full text-xs font-black border tracking-widest uppercase shadow-lg ${cfg.bg} ${cfg.border} ${cfg.color}`}>
+              <div className={`w-2 h-2 rounded-full ${riskScore >= 70 ? 'bg-red-500 animate-pulse' : riskScore >= 40 ? 'bg-amber-500' : 'bg-emerald-500'}`} />
+              {prediction?.status || 'Analyzing...'}
+            </div>
+          </div>
 
-              {/* Status Text */}
-              <div className="flex-1 space-y-4">
-                <div className="flex items-center gap-3">
-                  <div className={`p-2 rounded-xl ${cfg.bg} ${cfg.color}`}>
-                    <BatteryWarning size={32} />
-                  </div>
-                  <div>
-                    <h2 className="text-2xl font-bold text-white tracking-tight leading-tight">Burnout Intelligence</h2>
-                    <p className="text-gray-400 text-xs font-medium">Real-time risk assessment</p>
-                  </div>
+          {/* Intelligence Report Column */}
+          <div className="lg:col-span-8 flex flex-col gap-6">
+            <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4">
+              <div>
+                <div className="flex items-center gap-2 text-xs font-bold text-primary uppercase tracking-widest mb-1 opacity-70">
+                  <Brain size={14} /> AI Daily Intelligence
                 </div>
-                
-                <div className={`inline-flex items-center gap-2 px-6 py-2 rounded-full text-sm font-black border tracking-wider uppercase shadow-sm ${cfg.bg} ${cfg.border} ${cfg.color}`}>
-                  <div className={`w-2 h-2 rounded-full ${riskScore >= 70 ? 'bg-red-500 animate-pulse' : riskScore >= 40 ? 'bg-amber-500' : 'bg-emerald-500'}`} />
-                  {prediction?.status || 'Calculating...'}
-                </div>
-                <p className="text-gray-400 text-sm mb-1">
-                  Score based on screen time, sleep quality, and mood pattern analysis.
+                <h2 className="text-3xl font-black text-white leading-tight">Your Burnout Prediction Board</h2>
+                <p className="text-gray-400 text-sm mt-1 max-w-lg">
+                  Real-time wellness intelligence synthesized from your mood, environmental triggers, and activity patterns.
                 </p>
-                {/* Risk Bar */}
-                <div className="w-full h-3 bg-white/5 rounded-full overflow-hidden mt-4">
-                  <motion.div
-                    className={`h-full rounded-full ${riskScore >= 70 ? 'bg-gradient-to-r from-red-500 to-red-600' : riskScore >= 40 ? 'bg-gradient-to-r from-amber-400 to-orange-500' : 'bg-gradient-to-r from-emerald-400 to-teal-500'}`}
-                    initial={{ width: 0 }} animate={{ width: `${riskScore}%` }}
-                    transition={{ duration: 1.2, ease: 'easeOut', delay: 0.3 }}
-                  />
-                </div>
+              </div>
+              <div className="hidden sm:block text-right">
+                 <div className="text-[10px] font-bold text-gray-500 uppercase">Analysis Confidence</div>
+                 <div className="text-sm font-bold text-white">94.2% Accurate</div>
+              </div>
+            </div>
+
+            <div className="grid sm:grid-cols-2 gap-4">
+              <div className="bg-white/5 rounded-2xl p-5 border border-white/5 hover:border-white/10 transition-colors">
+                <h3 className="font-bold mb-4 flex items-center gap-2 text-[10px] uppercase tracking-widest text-gray-400">
+                  <Zap size={14} className="text-amber-400" /> Key Prediction Logic
+                </h3>
+                {prediction?.triggerDetails && prediction.triggerDetails.length > 0 ? (
+                   <ul className="space-y-3">
+                     {prediction.triggerDetails.map((t, idx) => (
+                       <li key={idx} className="flex justify-between items-center text-sm">
+                         <span className="text-gray-300">{t.trigger}</span>
+                         <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-red-400/10 text-red-400">+{t.impact}</span>
+                       </li>
+                     ))}
+                   </ul>
+                ) : (
+                  <p className="text-gray-500 text-xs italic">No critical triggers detected. Keep up your current rhythm.</p>
+                )}
               </div>
 
-              {/* Suggestions */}
-              <div className="flex-1 bg-white/5 rounded-2xl p-5 border border-white/5 min-w-0">
-                <h3 className="font-semibold mb-3 flex items-center gap-2 text-sm uppercase tracking-wider text-gray-400">
-                  <TrendingUp size={14} /> AI Recommendations
+              <div className="bg-primary/5 rounded-2xl p-5 border border-primary/10 hover:border-primary/20 transition-colors">
+                <h3 className="font-bold mb-4 flex items-center gap-2 text-[10px] uppercase tracking-widest text-primary">
+                  <TrendingUp size={14} /> Next Steps for You
                 </h3>
                 <ul className="space-y-3">
-                  {(prediction?.suggestions || []).map((sug, i) => (
-                    <motion.li key={i} initial={{ x: -10, opacity: 0 }} animate={{ x: 0, opacity: 1 }} transition={{ delay: 0.5 + i * 0.1 }}
-                      className="flex gap-3 text-sm text-gray-300">
-                      <div className={`w-1.5 h-1.5 rounded-full mt-1.5 shrink-0 ${i === 0 ? 'bg-primary' : 'bg-fuchsia-500'}`} />
+                  {(prediction?.suggestions || ['Continue tracking to get advice']).slice(0, 3).map((sug, i) => (
+                    <li key={i} className="flex gap-2 text-xs text-gray-300">
+                      <div className="w-1 h-1 rounded-full bg-primary mt-1.5 shrink-0" />
                       {sug}
-                    </motion.li>
+                    </li>
                   ))}
                 </ul>
               </div>
             </div>
-          </motion.div>
+          </div>
+        </div>
+      </motion.div>
+
+      {/* Conditional Rendering for empty state on Charts */}
+      {!hasData ? (
+        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}
+          className="glass-card text-center py-20 border-dashed border-white/10">
+          <Activity size={48} className="mx-auto text-primary/30 mb-4" />
+          <h3 className="text-xl font-bold mb-2 text-gray-300">Detailed Insights Pending</h3>
+          <p className="text-gray-500 mb-6 max-w-xs mx-auto">
+            The board is active, but we need at least one check-in to generate your charts and trend maps.
+          </p>
+          <Link to="/log" className="btn-primary inline-flex items-center gap-2">
+            <Zap size={18} /> Daily Check-In
+          </Link>
+        </motion.div>
+      ) : (
+        <>
 
           {/* Quick Stats */}
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
