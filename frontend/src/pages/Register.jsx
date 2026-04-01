@@ -36,7 +36,9 @@ const Register = () => {
       const details = err.response?.data?.details || '';
       const status = err.response?.status;
       
-      console.error(`[Register] Error ${status}: ${errorMsg} ${details}`);
+      const debugMsg = `API: ${import.meta.env.VITE_API_URL || 'NOT SET'} | Status: ${status || 'Network Error'} | Error: ${errorMsg}`;
+      setDebugInfo(debugMsg);
+      console.error(`[Register] ${debugMsg}`);
       
       if (status === 500) {
         addToast(`Server error: ${details || 'Check Render logs'}`, 'error');
@@ -90,6 +92,12 @@ const Register = () => {
             Already have an account?{' '}
             <Link to="/login" className="text-primary hover:text-white transition-colors font-semibold">Log in</Link>
           </p>
+          
+          {debugInfo && (
+            <div className="mt-4 p-3 bg-red-500/10 border border-red-500/20 rounded-lg">
+              <p className="text-xs text-red-400 font-mono break-all">{debugInfo}</p>
+            </div>
+          )}
         </form>
       </motion.div>
     </div>

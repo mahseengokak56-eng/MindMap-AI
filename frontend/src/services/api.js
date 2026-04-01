@@ -1,6 +1,9 @@
 import axios from 'axios';
 
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
+// Hardcoded for production - bypass env variable issues
+const API_URL = 'https://mindmap-ai-1.onrender.com/api';
+
+console.log('[API] Using URL:', API_URL);
 
 const api = axios.create({
   baseURL: API_URL,
