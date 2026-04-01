@@ -86,10 +86,23 @@ predictRouter.get('/', authMiddleware, async (req, res) => {
       ];
     }
 
-    const predictionDoc = new Prediction({ userId: req.userId, riskScore, status, suggestions, triggerDetails });
+    const predictionDoc = new Prediction({ 
+      userId: req.userId, 
+      riskScore, 
+      status, 
+      suggestions, 
+      triggerDetails 
+    });
+    
     await predictionDoc.save();
 
-    res.status(200).json({ riskScore, status, suggestions, triggerDetails });
+    res.status(200).json({ 
+      riskScore, 
+      status, 
+      suggestions, 
+      triggerDetails,
+      lastCalculatedAt: new Date()
+    });
   } catch (err) {
     console.error('Prediction error:', err);
     res.status(500).json({ error: 'Server error generating prediction' });

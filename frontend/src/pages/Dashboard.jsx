@@ -305,30 +305,50 @@ const Dashboard = () => {
             </motion.div>
           </div>
 
-          {/* Trigger Detection Card */}
+          {/* Trigger Detection Engine — DYNAMIC MAP */}
           <motion.div initial={{ y: 20, opacity: 0 }} animate={{ y: 0, opacity: 1 }} transition={{ delay: 0.4 }}
             className="glass-card">
-            <h2 className="text-xl font-bold mb-4 flex items-center gap-2">
-              <Zap className="text-amber-400" size={22} /> Trigger Detection Engine
-            </h2>
-            <div className="grid sm:grid-cols-3 gap-4">
-              {[
-                { label: 'High Screen Time', desc: '> 8 hrs/day', impact: '+20 Risk', triggered: lastActivity?.screenTimeHours > 8, color: 'violet' },
-                { label: 'Low Sleep',         desc: '< 6 hrs/day', impact: '+30 Risk', triggered: lastActivity?.sleepHours < 6, color: 'blue' },
-                { label: 'Negative Streak',   desc: '3+ bad moods', impact: '+40 Risk', triggered: prediction?.riskScore >= 70, color: 'fuchsia' },
-              ].map(t => (
-                <div key={t.label} className={`p-4 rounded-xl border transition-all ${t.triggered ? 'bg-red-500/5 border-red-500/20' : 'bg-white/3 border-white/5'}`}>
-                  <div className="flex items-center justify-between mb-2">
-                    <span className="text-sm font-semibold text-gray-200">{t.label}</span>
-                    <span className={`text-xs font-bold px-2 py-0.5 rounded-full ${t.triggered ? 'bg-red-500/20 text-red-400' : 'bg-green-500/10 text-green-500'}`}>
-                      {t.triggered ? '⚠ ACTIVE' : '✓ OK'}
-                    </span>
-                  </div>
-                  <p className="text-gray-500 text-xs mb-2">{t.desc}</p>
-                  <p className={`text-xs font-bold ${t.triggered ? 'text-red-400' : 'text-gray-600'}`}>Burnout impact: {t.impact}</p>
-                </div>
-              ))}
+            <div className="flex items-center justify-between mb-6">
+              <h2 className="text-xl font-bold flex items-center gap-2">
+                <Zap className="text-amber-400" size={22} /> Trigger Detection Engine
+              </h2>
+              <div className="text-[10px] font-bold text-gray-500 uppercase tracking-widest bg-white/5 px-2 py-1 rounded">
+                AI Analysis Active
+              </div>
             </div>
+
+            {prediction?.triggerDetails && prediction.triggerDetails.length > 0 ? (
+              <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                {prediction.triggerDetails.map((t, idx) => (
+                  <motion.div 
+                    key={idx} 
+                    initial={{ scale: 0.95, opacity: 0 }} 
+                    animate={{ scale: 1, opacity: 1 }} 
+                    transition={{ delay: 0.1 * idx }}
+                    className="p-5 rounded-2xl border bg-red-500/5 border-red-500/10 flex flex-col justify-between hover:border-red-500/30 transition-all"
+                  >
+                    <div className="flex justify-between items-start mb-2">
+                      <span className="text-sm font-bold text-white leading-tight">{t.trigger}</span>
+                      <span className="text-[10px] font-black px-2 py-0.5 rounded-full bg-red-500/20 text-red-400 border border-red-500/20">
+                        ⚠ ACTIVE
+                      </span>
+                    </div>
+                    <div className="mt-4">
+                      <div className="text-2xl font-black text-red-400">+{t.impact}</div>
+                      <div className="text-[10px] text-gray-500 font-bold uppercase tracking-tighter">Impact on Risk Score</div>
+                    </div>
+                  </motion.div>
+                ))}
+              </div>
+            ) : (
+              <div className="py-12 text-center bg-emerald-500/5 border border-dashed border-emerald-500/20 rounded-2xl">
+                <div className="w-12 h-12 rounded-full bg-emerald-500/20 text-emerald-500 flex items-center justify-center mx-auto mb-3">
+                   <Zap size={20} />
+                </div>
+                <h4 className="text-emerald-400 font-bold text-sm">No Critical Triggers Detected</h4>
+                <p className="text-gray-500 text-xs mt-1">Your current metrics are within healthy ranges. Keep it up!</p>
+              </div>
+            )}
           </motion.div>
         </>
       )}
