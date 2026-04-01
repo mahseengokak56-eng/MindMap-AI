@@ -36,20 +36,30 @@ router.post('/', authMiddleware, async (req, res) => {
 
     await newJournal.save();
 
-    // Handle Strak Logic
+    // Handle Streak Logic
     const user = await User.findById(req.userId);
+    if (!user) {
+      return res.status(404).json({ error: 'User not found. Your session may have expired or the database was reset. Please re-login.' });
+    }
+
     const now = new Date();
     const lastLog = user.lastLogDate ? new Date(user.lastLogDate) : null;
     
+    // Streak logic: check if the last log was exactly yesterday or more
     if (!lastLog) {
       user.currentStreak = 1;
     } else {
-      const diffDays = Math.floor((now - lastLog) / (1000 * 60 * 60 * 24));
+      // Calculate day difference at UTC midnight to avoid timezone/hour issues
+      const date1 = new Date(lastLog).setHours(0,0,0,0);
+      const date2 = new Date(now).setHours(0,0,0,0);
+      const diffDays = Math.floor((date2 - date1) / (1000 * 60 * 60 * 24));
+
       if (diffDays === 1) {
         user.currentStreak += 1;
       } else if (diffDays > 1) {
         user.currentStreak = 1;
       }
+      // If diffDays is 0, they already logged today, so we don't change the streak
     }
     
     user.lastLogDate = now;
