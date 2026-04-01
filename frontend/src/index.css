@@ -1,0 +1,158 @@
+@import "tailwindcss";
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap');
+
+@theme {
+  --color-primary: #8b5cf6;
+  --color-primary-dark: #7c3aed;
+  --color-dark-bg: #0a0f1e;
+  --color-glass-bg: rgba(20, 28, 50, 0.75);
+  --color-glass-border: rgba(255, 255, 255, 0.08);
+  --font-sans: 'Inter', system-ui, sans-serif;
+}
+
+@layer base {
+  *, *::before, *::after {
+    box-sizing: border-box;
+  }
+
+  html {
+    scroll-behavior: smooth;
+  }
+
+  body {
+    font-family: 'Inter', system-ui, sans-serif;
+    background-color: #0a0f1e;
+    color: #f1f5f9;
+    min-height: 100vh;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    background-image:
+      radial-gradient(ellipse at 15% 40%, rgba(139, 92, 246, 0.18) 0%, transparent 50%),
+      radial-gradient(ellipse at 85% 20%, rgba(217, 70, 239, 0.12) 0%, transparent 50%),
+      radial-gradient(ellipse at 50% 90%, rgba(59, 130, 246, 0.10) 0%, transparent 50%);
+    background-attachment: fixed;
+  }
+
+  /* Custom scrollbar */
+  ::-webkit-scrollbar { width: 6px; }
+  ::-webkit-scrollbar-track { background: rgba(255,255,255,0.02); }
+  ::-webkit-scrollbar-thumb { background: rgba(139,92,246,0.3); border-radius: 3px; }
+  ::-webkit-scrollbar-thumb:hover { background: rgba(139,92,246,0.5); }
+}
+
+@layer components {
+  .glass-card {
+    background: rgba(20, 28, 50, 0.7);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    border-radius: 1.25rem;
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    padding: 1.5rem;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4), inset 0 1px 0 rgba(255,255,255,0.05);
+    transition: border-color 0.2s ease;
+  }
+  
+  .glass-card:hover {
+    border-color: rgba(255, 255, 255, 0.12);
+  }
+
+  .glass-input {
+    width: 100%;
+    background: rgba(10, 15, 30, 0.6);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 0.875rem;
+    padding: 0.875rem 1rem;
+    color: #f1f5f9;
+    font-family: inherit;
+    font-size: 0.9rem;
+    transition: all 0.2s ease;
+    outline: none;
+  }
+
+  .glass-input::placeholder {
+    color: #475569;
+  }
+
+  .glass-input:focus {
+    border-color: rgba(139, 92, 246, 0.6);
+    box-shadow: 0 0 0 3px rgba(139, 92, 246, 0.12);
+    background: rgba(10, 15, 30, 0.8);
+  }
+  
+  .btn-primary {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    background: linear-gradient(135deg, #8b5cf6, #7c3aed);
+    color: #fff;
+    font-weight: 700;
+    padding: 0.75rem 1.5rem;
+    border-radius: 0.875rem;
+    border: none;
+    cursor: pointer;
+    font-family: inherit;
+    font-size: 0.95rem;
+    transition: all 0.2s ease;
+    box-shadow: 0 4px 20px rgba(139, 92, 246, 0.3);
+    text-decoration: none;
+  }
+
+  .btn-primary:hover:not(:disabled) {
+    background: linear-gradient(135deg, #7c3aed, #6d28d9);
+    box-shadow: 0 6px 24px rgba(139, 92, 246, 0.45);
+    transform: translateY(-1px);
+  }
+
+  .btn-primary:active:not(:disabled) {
+    transform: scale(0.98);
+  }
+
+  .btn-primary:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+    transform: none;
+  }
+}
+
+/* Range input styling */
+input[type="range"] {
+  -webkit-appearance: none;
+  appearance: none;
+  height: 6px;
+  background: rgba(255, 255, 255, 0.08);
+  border-radius: 3px;
+  outline: none;
+}
+
+input[type="range"]::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #8b5cf6, #d946ef);
+  cursor: pointer;
+  box-shadow: 0 0 8px rgba(139, 92, 246, 0.6);
+  transition: all 0.15s ease;
+}
+
+input[type="range"]::-webkit-slider-thumb:hover {
+  transform: scale(1.2);
+  box-shadow: 0 0 14px rgba(139, 92, 246, 0.8);
+}
+
+/* Animations */
+@keyframes fadeInUp {
+  from { opacity: 0; transform: translateY(20px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes pulseGlow {
+  0%, 100% { box-shadow: 0 0 20px rgba(139,92,246,0.3); }
+  50%       { box-shadow: 0 0 40px rgba(139,92,246,0.6); }
+}
+
+.animate-glow {
+  animation: pulseGlow 2s ease-in-out infinite;
+}
