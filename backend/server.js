@@ -67,47 +67,62 @@ app.use((err, req, res, next) => {
 const connectDB = async () => {
   let uri = process.env.MONGO_URI;
   const isProduction = process.env.NODE_ENV === 'production' || process.env.RENDER === 'true';
+  const PORT = process.env.PORT || 5000;
   
   if (uri) {
-    // 🛡️ SANITIZE: Trim spaces and remove accidental quotes from deployment platforms
-    uri = uri.trim().replace(/^["'](.+)["']$/, '$1');
+    // 🛡️ SUPER AGGRESSIVE SANITIZE: Remove ALL quotes, spaces, and hidden characters
+    uri = uri.replace(/['"\s]+/g, '').trim();
   }
 
-  // 🛡️ SECURITY: Prevent 'fake' DB in production
-  const isPlaceholder = !uri || uri.includes('<password>') || uri.includes('username:password') || uri.includes('example.com');
+  // 🛡️ SECURITY: Detect placeholder/missing URI
+  const isPlaceholder = !uri || uri.includes('<password>') || uri.includes('username:password') || uri.includes('example.com') || uri.length < 10;
+
+  const startMemoryServer = async () => {
+    console.log('⚠️ FALLBACK: Starting In-Memory MongoDB (Data will be lost on restart)...');
+    try {
+      const { MongoMemoryServer } = require('mongodb-memory-server');
+      const mongoServer = await MongoMemoryServer.create();
+      return mongoServer.getUri();
+    } catch(e) {
+      console.error('❌ Failed to start memory server:', e);
+      return null;
+    }
+  };
 
   if (isPlaceholder) {
-    if (isProduction) {
-      console.error('❌ CRITICAL: No real MONGO_URI provided in Environment Variables!');
-      process.exit(1);
-    } else {
-      console.log('⚠️ Development Mode: Autostarting In-Memory MongoDB...');
-      try {
-        const { MongoMemoryServer } = require('mongodb-memory-server');
-        const mongoServer = await MongoMemoryServer.create();
-        uri = mongoServer.getUri();
-      } catch(e) {
-        console.error('Failed to start memory server:', e);
-        process.exit(1);
-      }
-    }
+    console.log('❓ No valid MONGO_URI found.');
+    uri = await startMemoryServer();
   }
 
-  try {
-    // Log the scheme to debug "Invalid scheme" error
-    const scheme = uri ? uri.split('://')[0] : 'none';
-    console.log(`📡 Attempting connection (Scheme: ${scheme})...`);
-    
-    await mongoose.connect(uri);
-    console.log('✅ Connected to MongoDB (Persistent)');
-    app.listen(PORT, () => {
-      console.log(`🚀 Server running on port ${PORT}`);
-      console.log(`🔗 Local link: http://localhost:${PORT}`);
-    });
-  } catch (err) {
-    console.error('❌ MongoDB Connection Failure:', err.message);
-    if (isProduction) process.exit(1);
-  }
+  const startServer = async (connectionUri) => {
+    try {
+      const scheme = connectionUri ? connectionUri.split('://')[0].slice(-7) : 'none';
+      console.log(`📡 Attempting connection (Scheme ending in: ${scheme})...`);
+      
+      await mongoose.connect(connectionUri, {
+        serverSelectionTimeoutMS: 5000 // 5 second timeout
+      });
+      console.log('✅ Connected to MongoDB');
+      
+      if (!app.isRunning) {
+        app.listen(PORT, () => {
+          console.log(`🚀 Server LIVE on port ${PORT}`);
+          app.isRunning = true;
+        });
+      }
+    } catch (err) {
+      console.error('❌ Persistent DB Failed:', err.message);
+      if (!connectionUri.includes('127.0.0.1')) {
+        console.log('🔄 Retrying with Memory Server fallback...');
+        const fallbackUri = await startMemoryServer();
+        if (fallbackUri) await startServer(fallbackUri);
+      } else {
+        console.error('❌ CRITICAL: All DB options failed. Backend cannot function.');
+      }
+    }
+  };
+
+  await startServer(uri);
 };
 
 connectDB();
