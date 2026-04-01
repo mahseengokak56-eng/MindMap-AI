@@ -20,12 +20,12 @@ api.interceptors.request.use(
   (error) => Promise.reject(error)
 );
 
-// Response interceptor for automatic logout on auth failure
+// Response interceptor - only auto-logout on 401 Unauthorized
 api.interceptors.response.use(
   (response) => response,
   (error) => {
-    if (error.response && (error.response.status === 401 || error.response.status === 404)) {
-      // If unauthorized or user not found (DB reset), clear session and reload
+    if (error.response && error.response.status === 401) {
+      // If unauthorized/token expired, clear session and reload
       localStorage.removeItem('token');
       localStorage.removeItem('user');
       window.location.href = '/login';

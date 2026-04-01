@@ -6,7 +6,7 @@ const cors = require('cors');
 const app = express();
 const PORT = process.env.PORT || 5000;
 
-// 🛡️ EMERGENCY DEBUG: OPENING CORS TO ALL ORIGINS (*)
+// CORS — open to all origins for development/deployment compatibility
 app.use((req, res, next) => {
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
@@ -17,15 +17,13 @@ app.use((req, res, next) => {
 
 app.use(cors({ origin: true, credentials: true }));
 
-// ⚡ EXTRA LOGGING FOR REGISTRATION DEBUGGING
+// Registration debug logging
 app.use((req, res, next) => {
   if (req.path === '/api/auth/register') {
     console.log(`[AUTH DEBUG] New Registration Attempt: ${req.body?.email || 'No Email'}`);
   }
   next();
 });
-
-app.use(cors({ origin: allowedOrigins, credentials: true }));
 
 app.use(express.json());
 
