@@ -20,6 +20,8 @@ router.post('/', authMiddleware, async (req, res) => {
       reply = "It sounds like you're carrying a lot right now. Remember to take deep breaths. Ground yourself by looking for 5 things you can see around you.";
     } else if (msg.includes('tired') || msg.includes('exhausted') || msg.includes('sleepy') || msg.includes('fatigue')) {
       reply = "Burnout often starts with exhaustion. Please prioritize genuine rest tonight. Your body is asking for a break.";
+    } else if (msg.includes('hospital') || msg.includes('doctor') || msg.includes('clinic') || msg.includes('health care') || msg.includes('healthcare') || msg.includes('medical')) {
+      reply = "If you or someone you know is in immediate danger, please call your local emergency services immediately. You can find the nearest healthcare centers by clicking here: https://www.google.com/maps/search/nearest+hospital+or+mental+health+clinic";
     } else if (msg.includes('sad') || msg.includes('depressed') || msg.includes('lonely') || msg.includes('down')) {
       reply = "I'm really sorry you're feeling this way. It's okay to not be okay. If you need immediate support, please reach out to your emergency contact or a professional.";
     } else if (msg.includes('angry') || msg.includes('mad') || msg.includes('frustrated')) {
