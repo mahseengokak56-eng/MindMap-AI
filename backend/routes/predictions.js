@@ -13,118 +13,97 @@ predictRouter.get('/', authMiddleware, async (req, res) => {
     const latestActivity = await ActivityLog.findOne({ userId: req.userId }).sort({ createdAt: -1 });
     const recentMoods = await MoodLog.find({ userId: req.userId }).sort({ createdAt: -1 }).limit(3);
 
-    let riskScore = 0;
+    let riskScore = 15; // Baseline 15 for visibility
     const triggerDetails = [];
 
-    // Trigger 1: High Screen Time (> 8 hours) → +20
-    if (latestActivity && latestActivity.screenTimeHours > 8) {
-      riskScore += 20;
-      triggerDetails.push({ trigger: 'High Screen Time', impact: 20 });
+    console.log(`[Prediction Engine] Analyzing for User: ${req.userId}`);
+
+    if (latestActivity) {
+      // Screen Time
+      if (latestActivity.screenTimeHours > 12) {
+        riskScore += 30;
+        triggerDetails.push({ trigger: 'Extreme Screen Time', impact: 30 });
+      } else if (latestActivity.screenTimeHours > 8) {
+        riskScore += 20;
+        triggerDetails.push({ trigger: 'High Screen Time', impact: 20 });
+      }
+
+      // Sleep
+      if (latestActivity.sleepHours < 4) {
+        riskScore += 40;
+        triggerDetails.push({ trigger: 'Critical Sleep Deprivation', impact: 40 });
+      } else if (latestActivity.sleepHours < 6) {
+        riskScore += 30;
+        triggerDetails.push({ trigger: 'Low Sleep', impact: 30 });
+      }
+
+      // Study
+      if (latestActivity.studyTimeHours > 10) {
+        riskScore += 15;
+        triggerDetails.push({ trigger: 'Heavy Workload', impact: 15 });
+      }
+
+      // Positive offset: Good sleep
+      if (latestActivity.sleepHours >= 8) riskScore -= 10;
     }
 
-    // Trigger 2: Very High Screen Time (> 12 hours) → additional +10
-    if (latestActivity && latestActivity.screenTimeHours > 12) {
-      riskScore += 10;
-      triggerDetails.push({ trigger: 'Extreme Screen Time', impact: 10 });
-    }
+    // Mood Patterns
+    let negativeCount = 0;
+    recentMoods.forEach(m => { if (m.moodScore <= 2) negativeCount++; });
 
-    // Trigger 3: Low Sleep (< 6 hours) → +30
-    if (latestActivity && latestActivity.sleepHours < 6) {
-      riskScore += 30;
-      triggerDetails.push({ trigger: 'Low Sleep', impact: 30 });
-    }
-
-    // Trigger 4: Very Low Sleep (< 4 hours) → additional +10
-    if (latestActivity && latestActivity.sleepHours < 4) {
-      riskScore += 10;
-      triggerDetails.push({ trigger: 'Critical Sleep Deprivation', impact: 10 });
-    }
-
-    // Trigger 5: High Study Time (> 10 hours) → +10
-    if (latestActivity && latestActivity.studyTimeHours > 10) {
-      riskScore += 10;
-      triggerDetails.push({ trigger: 'Overwork / Study Burnout', impact: 10 });
-    }
-
-    // Trigger 6: Negative Mood Streak
-    let negativeStreaks = 0;
-    recentMoods.forEach(mood => {
-      if (mood.moodScore <= 2) negativeStreaks++;
-    });
-
-    if (negativeStreaks >= 3) {
+    if (negativeCount >= 3) {
       riskScore += 40;
-      triggerDetails.push({ trigger: 'Negative Mood Streak (3 days)', impact: 40 });
-    } else if (negativeStreaks === 2) {
-      riskScore += 20;
-      triggerDetails.push({ trigger: 'Negative Mood Streak (2 days)', impact: 20 });
-    } else if (negativeStreaks === 1) {
-      riskScore += 10;
-      triggerDetails.push({ trigger: 'Declining Mood', impact: 10 });
+      triggerDetails.push({ trigger: 'Persistent Negative Mood', impact: 40 });
+    } else if (negativeCount >= 1) {
+      riskScore += 15;
+      triggerDetails.push({ trigger: 'Declining Mood', impact: 15 });
     }
 
-    // Positive offset: Good sleep
-    if (latestActivity && latestActivity.sleepHours >= 8) {
-      riskScore -= 10;
-    }
+    // Cap between 5 and 100 (keep it visible)
+    riskScore = Math.max(5, Math.min(100, riskScore));
 
-    // Cap between 0 and 100
-    riskScore = Math.max(0, Math.min(100, riskScore));
-
-    // Determine status & suggestions
     let status, suggestions;
-
     if (riskScore >= 70) {
       status = 'High Risk';
       suggestions = [
-        '🚨 Your mental health needs urgent attention — take a full rest day.',
-        '📴 Disconnect from screens for at least 4 hours today.',
-        '😴 Prioritize 8+ hours of sleep tonight — it\'s non-negotiable.',
-        '🧘 Try a 10-minute breathing exercise to reduce cortisol.',
-        '📞 Talk to someone you trust — you don\'t have to carry this alone.'
+        '🚨 Urgent: Your wellness markers are critical. Take a complete break.',
+        '😴 Prioritize 8+ hours of sleep tonight—it is non-negotiable.',
+        '📴 Disconnect from all digital devices for the next 4 hours.'
       ];
     } else if (riskScore >= 40) {
       status = 'Moderate Risk';
       suggestions = [
-        '⚠️ You\'re showing early burnout signs — act now before it worsens.',
-        '📱 Put your phone away 1 hour before bed to improve sleep quality.',
-        '⏸ Take the Pomodoro break: 25 min work, 5 min rest.',
-        '🚶 A 15-minute walk outside can reduce stress hormones by 20%.',
-        '📓 Journal your thoughts tonight — release what\'s weighing you down.'
+        '⚠️ You are showing early burnout signs. Slow down.',
+        '🚶 A 15-minute walk today will significantly lower your stress.',
+        '⏸ Try the Pomodoro technique for work/study sessions.'
       ];
     } else {
       status = 'Low Risk';
       suggestions = [
-        '✅ You\'re doing well! Keep up the healthy rhythm.',
-        '💧 Stay hydrated and maintain your sleep schedule.',
-        '🎯 Plan your week ahead to stay ahead of stress.',
-        '🌿 Keep your screen time balanced — your brain will thank you.'
+        '✅ You are doing great! Keep maintaining this balance.',
+        '💧 Stay hydrated and stick to your current sleep schedule.',
+        '🌿 Plan some "me-time" this weekend to stay refreshed.'
       ];
     }
 
-    // Save prediction
     const predictionDoc = new Prediction({ userId: req.userId, riskScore, status, suggestions, triggerDetails });
     await predictionDoc.save();
 
     res.status(200).json({ riskScore, status, suggestions, triggerDetails });
   } catch (err) {
     console.error('Prediction error:', err);
-    res.status(500).json({ error: 'Server error generating burnout prediction', details: err.message });
+    res.status(500).json({ error: 'Server error generating prediction' });
   }
 });
 
 // GET /api/suggestions
 suggestionsRouter.get('/', authMiddleware, async (req, res) => {
   try {
-    const latestPrediction = await Prediction.findOne({ userId: req.userId }).sort({ createdAt: -1 });
-    if (!latestPrediction) {
-      return res.status(200).json({
-        suggestions: ['Start tracking your moods and activities to get personalized suggestions!']
-      });
-    }
-    res.status(200).json({ suggestions: latestPrediction.suggestions, riskScore: latestPrediction.riskScore, status: latestPrediction.status });
+    const latest = await Prediction.findOne({ userId: req.userId }).sort({ createdAt: -1 });
+    if (!latest) return res.status(200).json({ suggestions: ['Log your day to get AI suggestions!'] });
+    res.status(200).json(latest);
   } catch (err) {
-    res.status(500).json({ error: 'Server error fetching suggestions' });
+    res.status(500).json({ error: 'Server error' });
   }
 });
 

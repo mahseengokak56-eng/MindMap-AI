@@ -170,21 +170,27 @@ const Dashboard = () => {
                 >
                   <RadialBar dataKey="value" cornerRadius={10} background={{ fill: 'rgba(255,255,255,0.05)' }} />
                 </RadialBarChart>
-                <div className="text-center -mt-24">
-                  <div className="text-4xl font-black">{riskScore}</div>
-                  <div className="text-xs text-gray-500">/ 100</div>
+                <div className="text-center -mt-24 relative z-20">
+                  <div className="text-5xl font-black text-white leading-none">{riskScore}</div>
+                  <div className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mt-1">/ 100 Risk</div>
                 </div>
               </div>
 
               {/* Status Text */}
-              <div className="flex-1">
-                <div className="flex items-center gap-3 mb-3">
-                  <BatteryWarning className={cfg.color} size={28} />
-                  <h2 className="text-2xl font-bold">Burnout Risk Score</h2>
+              <div className="flex-1 space-y-4">
+                <div className="flex items-center gap-3">
+                  <div className={`p-2 rounded-xl ${cfg.bg} ${cfg.color}`}>
+                    <BatteryWarning size={32} />
+                  </div>
+                  <div>
+                    <h2 className="text-2xl font-bold text-white tracking-tight leading-tight">Burnout Intelligence</h2>
+                    <p className="text-gray-400 text-xs font-medium">Real-time risk assessment</p>
+                  </div>
                 </div>
-                <div className={`inline-flex items-center gap-2 px-4 py-1.5 rounded-full text-sm font-bold border mb-4 ${cfg.bg} ${cfg.border} ${cfg.color}`}>
-                  <AlertTriangle size={14} />
-                  {prediction?.status || 'Unknown'}
+                
+                <div className={`inline-flex items-center gap-2 px-6 py-2 rounded-full text-sm font-black border tracking-wider uppercase shadow-sm ${cfg.bg} ${cfg.border} ${cfg.color}`}>
+                  <div className={`w-2 h-2 rounded-full ${riskScore >= 70 ? 'bg-red-500 animate-pulse' : riskScore >= 40 ? 'bg-amber-500' : 'bg-emerald-500'}`} />
+                  {prediction?.status || 'Calculating...'}
                 </div>
                 <p className="text-gray-400 text-sm mb-1">
                   Score based on screen time, sleep quality, and mood pattern analysis.
