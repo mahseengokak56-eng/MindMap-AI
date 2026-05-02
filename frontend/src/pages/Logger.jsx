@@ -53,7 +53,7 @@ const Logger = () => {
       await logMood(moodForm);
       await logActivity(activityForm);
       addToast('Check-in saved! Predictions updated. 🧠', 'success');
-      setTimeout(() => navigate('/'), 800);
+      setTimeout(() => navigate('/dashboard'), 800);
     } catch (err) {
       addToast('Failed to save. Is the backend running?', 'error');
     } finally {
