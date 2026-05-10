@@ -4,9 +4,6 @@ const authMiddleware = require('../middleware/auth');
 const Prediction = require('../models/Prediction');
 const { GoogleGenerativeAI } = require('@google/generative-ai');
 
-// Initialize Gemini
-const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || "dummy");
-
 // POST /api/chat
 router.post('/', authMiddleware, async (req, res) => {
   try {
@@ -19,13 +16,17 @@ router.post('/', authMiddleware, async (req, res) => {
     let reply = "I'm here to support you. How are you feeling today?";
 
     try {
+      const apiKey = req.headers['x-gemini-key'] || process.env.GEMINI_API_KEY;
+      
       // 1. Check if Gemini API key exists
-      if (!process.env.GEMINI_API_KEY || process.env.GEMINI_API_KEY === 'your_api_key_here') {
-        throw new Error("Missing Gemini API Key");
+      if (!apiKey || apiKey === 'your_api_key_here' || apiKey === 'undefined') {
+        throw new Error("Missing Gemini API Key from headers or env");
       }
 
+      const client = new GoogleGenerativeAI(apiKey);
+
       // 2. Call Gemini
-      const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+      const model = client.getGenerativeModel({ model: "gemini-1.5-flash" });
       const prompt = `You are a compassionate, supportive, and extremely brief MindMap-AI mental health companion. 
 The user's current estimated burnout risk score is ${riskScore}/100.
 If the score is high (above 60), gently advise them to rest.

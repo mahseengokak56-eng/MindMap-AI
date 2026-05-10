@@ -1,10 +1,13 @@
 import { useState, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { MessageSquare, X, Send, Bot, User } from 'lucide-react';
+import { MessageSquare, X, Send, Bot, User, KeyRound } from 'lucide-react';
 import { sendMessage } from '../services/api';
 
 const Chatbot = () => {
   const [isOpen, setIsOpen] = useState(false);
+  const [apiKeyMissing, setApiKeyMissing] = useState(false);
+  const [apiInputValue, setApiInputValue] = useState('');
+
   const [messages, setMessages] = useState([
     { text: "Hi there. I'm your MindMap AI assistant. How are you feeling today?", sender: 'bot' }
   ]);
@@ -18,11 +21,31 @@ const Chatbot = () => {
 
   useEffect(() => {
     scrollToBottom();
-  }, [messages]);
+  }, [messages, apiKeyMissing]);
+
+  useEffect(() => {
+    if (isOpen && !localStorage.getItem('gemini_key')) {
+      setApiKeyMissing(true);
+    }
+  }, [isOpen]);
+
+  const handleSaveKey = (e) => {
+    e.preventDefault();
+    if (apiInputValue.trim()) {
+      localStorage.setItem('gemini_key', apiInputValue.trim());
+      setApiKeyMissing(false);
+      setMessages(prev => [...prev, { text: "API Key saved securely in your browser! I am now fully dynamic. ✨ What's on your mind?", sender: 'bot' }]);
+    }
+  };
 
   const handleSend = async (e) => {
     e.preventDefault();
     if (!input.trim()) return;
+
+    if (!localStorage.getItem('gemini_key')) {
+      setApiKeyMissing(true);
+      return;
+    }
 
     const userMsg = input.trim();
     setMessages(prev => [...prev, { text: userMsg, sender: 'user' }]);
@@ -33,7 +56,7 @@ const Chatbot = () => {
       const res = await sendMessage({ message: userMsg });
       setMessages(prev => [...prev, { text: res.data.reply, sender: 'bot' }]);
     } catch (err) {
-      setMessages(prev => [...prev, { text: "I'm having trouble connecting to the server. Please try again later.", sender: 'bot' }]);
+      setMessages(prev => [...prev, { text: "I'm having trouble connecting to the server. Please check your network or API Key.", sender: 'bot' }]);
     } finally {
       setLoading(false);
     }
@@ -74,6 +97,31 @@ const Chatbot = () => {
                   </div>
                 </div>
               ))}
+              
+              {/* API Key Modal Box injected into chat stream */}
+              {apiKeyMissing && (
+                <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="p-4 rounded-xl border border-blue-500/30 bg-[rgba(59,130,246,0.1)] text-sm mb-2 shadow-lg">
+                  <div className="flex items-center gap-2 mb-2 text-blue-400 font-semibold">
+                    <KeyRound size={16} /> Setup Required
+                  </div>
+                  <p className="text-gray-300 text-xs mb-3">
+                    Please securely enter your Gemini API Key. It will be saved locally in your browser cache and bypassed directly to the AI!
+                  </p>
+                  <form onSubmit={handleSaveKey} className="flex gap-2">
+                    <input
+                      type="password"
+                      placeholder="Paste Gemini API Key..."
+                      value={apiInputValue}
+                      onChange={e => setApiInputValue(e.target.value)}
+                      className="flex-1 bg-black/40 text-white text-xs rounded-lg px-3 py-2 border border-white/10 outline-none focus:border-blue-500/50"
+                    />
+                    <button type="submit" disabled={!apiInputValue.trim()} className="bg-blue-500 hover:bg-blue-600 disabled:opacity-50 text-white font-semibold text-xs px-3 py-2 rounded-lg transition-colors">
+                      Save
+                    </button>
+                  </form>
+                </motion.div>
+              )}
+
               {loading && (
                 <div className="flex gap-3">
                   <div className="w-8 h-8 shrink-0 rounded-full bg-blue-500/20 flex items-center justify-center text-blue-400">
@@ -102,9 +150,10 @@ const Chatbot = () => {
                   value={input}
                   onChange={e => setInput(e.target.value)}
                   placeholder="Type a message..."
-                  className="flex-1 bg-black/40 text-white text-sm rounded-xl px-4 py-2 border border-white/10 outline-none focus:border-primary/50 transition-colors"
+                  disabled={apiKeyMissing}
+                  className="flex-1 bg-black/40 text-white text-sm rounded-xl px-4 py-2 border border-white/10 outline-none focus:border-primary/50 disabled:opacity-50 transition-colors"
                 />
-                <button type="submit" disabled={!input.trim()} className="w-10 h-10 shrink-0 bg-primary hover:bg-primary/80 disabled:opacity-50 text-white rounded-xl flex items-center justify-center transition-colors">
+                <button type="submit" disabled={!input.trim() || apiKeyMissing} className="w-10 h-10 shrink-0 bg-primary hover:bg-primary/80 disabled:opacity-50 text-white rounded-xl flex items-center justify-center transition-colors">
                   <Send size={16} className="-ml-1" />
                 </button>
               </form>

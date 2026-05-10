@@ -18,6 +18,10 @@ api.interceptors.request.use(
     if (token) {
       config.headers['Authorization'] = `Bearer ${token}`;
     }
+    const geminiKey = localStorage.getItem('gemini_key');
+    if (geminiKey) {
+      config.headers['x-gemini-key'] = geminiKey;
+    }
     return config;
   },
   (error) => Promise.reject(error)
