@@ -6,10 +6,15 @@ import { useAuth } from '../context/AuthContext';
 import EmergencySettings from './EmergencySettings';
 
 const TRACKS = [
-  { id: 'ocean', name: 'Ocean Waves', icon: Headphones, url: 'https://actions.google.com/sounds/v1/water/ocean_waves_steady.ogg' },
-  { id: 'rain',  name: 'Rain & Thunder', icon: CloudRain, url: 'https://actions.google.com/sounds/v1/weather/rain_on_roof.ogg' },
-  { id: 'ambient', name: 'Calm Melody', icon: Music, url: 'https://cdn.pixabay.com/download/audio/2022/05/27/audio_1808fbf07a.mp3' },
-  { id: 'wind',  name: 'Desert Wind', icon: Wind, url: 'https://actions.google.com/sounds/v1/weather/strong_wind.ogg' }
+  { id: 'lofi',    name: '🎵 Lo-Fi Beats',      icon: Music,      url: 'https://cdn.pixabay.com/download/audio/2022/05/27/audio_1808fbf07a.mp3' },
+  { id: 'ocean',   name: '🌊 Ocean Waves',       icon: Headphones, url: 'https://actions.google.com/sounds/v1/water/ocean_waves_steady.ogg' },
+  { id: 'rain',    name: '🌧️ Rain & Thunder',    icon: CloudRain,  url: 'https://actions.google.com/sounds/v1/weather/rain_on_roof.ogg' },
+  { id: 'forest',  name: '🌲 Forest Birds',       icon: Wind,       url: 'https://actions.google.com/sounds/v1/animals/bird_calls.ogg' },
+  { id: 'fire',    name: '🔥 Fireplace',          icon: Headphones, url: 'https://actions.google.com/sounds/v1/ambiences/fireplace.ogg' },
+  { id: 'stream',  name: '💧 Stream & River',     icon: CloudRain,  url: 'https://actions.google.com/sounds/v1/water/stream.ogg' },
+  { id: 'wind',    name: '🌬️ Desert Wind',        icon: Wind,       url: 'https://actions.google.com/sounds/v1/weather/strong_wind.ogg' },
+  { id: 'piano',   name: '🎹 Piano Calm',         icon: Music,      url: 'https://actions.google.com/sounds/v1/ambiences/coffee_shop_ambience.ogg' },
+  { id: 'white',   name: '⬜ White Noise',        icon: Headphones, url: 'https://actions.google.com/sounds/v1/ambiences/office_ambience.ogg' },
 ];
 
 const Navbar = () => {

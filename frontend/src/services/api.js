@@ -1,7 +1,9 @@
 import axios from 'axios';
 
-// Hardcoded for production - bypass env variable issues
-const API_URL = 'https://mindmap-ai-1.onrender.com/api';
+// Reads from .env (VITE_API_URL). 
+// Local dev  → http://localhost:5000/api  (set in frontend/.env)
+// Production → https://mindmap-ai-1.onrender.com/api  (set in Vercel env vars)
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
 
 console.log('[API] Using URL:', API_URL);
 
@@ -51,6 +53,7 @@ export const logActivity = (data) => api.post('/activity', data);
 export const getPrediction = () => api.get('/predict');
 export const getSuggestions = () => api.get('/suggestions');
 export const triggerSOS = () => api.post('/sos');
+// data: { message: string, history: Array<{role, parts}> }
 export const sendMessage = (data) => api.post('/chat', data);
 export const getProfile = () => api.get('/profile');
 export const updateEmergencyContact = (data) => api.put('/profile/emergency', data);

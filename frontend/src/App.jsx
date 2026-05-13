@@ -9,7 +9,6 @@ import Register from './pages/Register';
 import Toast from './components/Toast';
 import { ToastProvider } from './context/ToastContext';
 import { AuthProvider, useAuth } from './context/AuthContext';
-import MusicPlayer from './components/MusicPlayer';
 import Chatbot from './components/Chatbot';
 
 const ProtectedRoute = ({ children }) => {
@@ -48,7 +47,6 @@ function App() {
               </Routes>
             </main>
             <Toast />
-            <MusicPlayer />
           </div>
         </Router>
       </AuthProvider>
