@@ -1,9 +1,8 @@
 import axios from 'axios';
 
-// Reads from .env (VITE_API_URL). 
-// Local dev  → http://localhost:5000/api  (set in frontend/.env)
-// Production → https://mindmap-ai-1.onrender.com/api  (set in Vercel env vars)
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
+// Local dev  → VITE_API_URL=http://localhost:5000/api  (set in frontend/.env — gitignored)
+// Production → falls back to Render backend URL automatically
+const API_URL = import.meta.env.VITE_API_URL || 'https://mindmap-ai-1.onrender.com/api';
 
 console.log('[API] Using URL:', API_URL);
 
